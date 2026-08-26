@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+      groupId is com.github.LiQiyeDev, exactly as in botmaker-shared and botmaker-session and for the same
+      reason: JitPack serves this repo as com.github.LiQiyeDev:botmaker-studio-api:<tag> regardless of what
+      this pom says, so matching it here makes the reactor GAV identical to the published GAV. The version
+      below is cosmetic — JitPack overrides it with the git tag.
+    -->
+    <groupId>com.github.LiQiyeDev</groupId>
+    <artifactId>botmaker-studio-api</artifactId>
+    <version>0.0.0-SNAPSHOT</version>
+
+    <name>BotMaker Studio Plugin API</name>
+    <description>
+        The contract a BotMaker Studio plugin compiles against: what it contributes to the palette, and how
+        it edits a value slot. Interfaces and records only — no implementation, no Studio types.
+    </description>
+
+    <!--
+      This module deliberately does NOT run flatten-maven-plugin, unlike botmaker-session and botmaker-sdk.
+      Flatten is there to bake a -D-injected ${botmaker.*.version} into the published pom; this module has no
+      property-driven dependency to bake. Its one dependency is javafx-controls at a literal version, in
+      `provided` scope, so the committed pom is already the pom a consumer needs.
+
+      It also has no .deps.env for the same reason: it pins no BotMaker upstream, so there is nothing for a
+      release to record and nothing for jitpack.yml to source.
+    -->
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <javafx.version>21</javafx.version>
+        <junit.version>5.10.2</junit.version>
+    </properties>
+
+    <dependencies>
+        <!--
+          A slot editor returns a javafx.scene.Node. That pins the plugin platform to JavaFX permanently and
+          it is a decision, not an oversight: a UI-factory abstraction able to express the bespoke editors
+          (image template, capture source, launch target) would be larger than JavaFX itself.
+
+          `provided` is what keeps it off everyone else's classpath. Studio brings its own JavaFX; the SDK
+          declares JavaFX optionally for the editors it ships; and a generated bot resolves neither, because
+          a provided-scope dependency is never transitive.
+        -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

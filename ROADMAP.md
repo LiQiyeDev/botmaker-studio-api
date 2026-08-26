@@ -1,0 +1,61 @@
+# ROADMAP — botmaker-studio-api
+
+The running engineering log. `CHANGELOG.md` is the short, per-release answer; this is the detail and the
+reasoning.
+
+## Done
+
+### 2026-08-26 — the module exists (plugin platform, phase 5)
+
+Created as the seventh BotMaker repository, first in the umbrella reactor. It holds the contract that lets
+Studio become a **plugin host** and `botmaker-sdk` become plugin #1 — a privileged default plugin, but a
+plugin, with no back door into the host.
+
+**Why a separate repository rather than a package in the SDK or in Studio.** The contract must be allowed to
+version *slower* than either. A bot's source can be rewritten when the SDK changes, because Studio holds an
+AST of it; a plugin's compiled `.class` files cannot be rewritten by anybody. Putting the contract in the
+SDK would tie its cadence to the SDK's, which changes every week, and a third-party plugin would then depend
+on the whole SDK to implement two interfaces.
+
+**What landed:**
+
+- `com.botmaker.plugin.api` — `StudioPlugin` (every method but `id()` a `default`), `SlotEditor`,
+  `SlotContext`, `TypeRef`, `StudioServices`, `Theme`, `Capture`, `Dialogs`, `Region`.
+- `com.botmaker.plugin.api.catalog` — `PaletteCatalog`, `CatalogBuilder`, `Category`, `FacadeEntry`,
+  `MemberEntry`, `MemberId`, `MemberRef`, `M0`–`M5`.
+- `CatalogBuilderTest`, 13 tests, all on the one claim the design rests on: that a method reference carries
+  enough identity to name an *overload*.
+
+**The decisions worth not re-litigating**, each taken against a named alternative:
+
+- **A slot editor returns a `javafx.scene.Node`**, so the platform is pinned to JavaFX permanently. The
+  alternative was a UI-factory abstraction; the editors worth writing (image template, capture source,
+  launch target) are bespoke, and a factory able to express them would be larger than JavaFX.
+- **A catalog entry is a method reference**, read through `SerializedLambda`. The alternatives were strings
+  (nothing checks them) and class literals plus strings (the maintainer's objection: *"I don't like
+  literals"*, and the same non-checking on the member half). The reference is checked by javac.
+- **One void-returning shape per arity, `M0`–`M5`.** A value-returning shape beside `M1` would make `add`
+  ambiguous for most real members, since a reference to a value-returning method is compatible with a
+  void-returning interface. Ambiguity within one arity is the caller's, via a type witness.
+- **No shaded plugin toolkit** — with the contract at interfaces and records, there is nothing to shade
+  against.
+- **Panels are not a surface.** Plugins contribute to the editor; they do not contribute editors.
+- **No flatten-maven-plugin and no `.deps.env`**, unlike session and the SDK: this module pins no BotMaker
+  upstream, so there is nothing to inject and nothing to bake.
+
+## Deferred / next
+
+- **The SDK's per-version catalog** (phase 6) — one frozen class per released `SdkVersion`, built as the
+  previous one plus deltas, plus a `release.sh` gate: editing an already-released catalog is only possible
+  when a member it names is deleted, so the edit *is* the removal signal.
+- **Studio reads the catalog** (phase 7) — `SdkSurfaceService` curation switches over and `palette/SdkType`
+  retires.
+- **The slot editors move into the SDK** (phase 8) — thirteen of them, plus the Steam/Epic scanners moving
+  to `botmaker-shared`.
+- **Dynamic plugin loading** — `ServiceLoader` over a `URLClassLoader` built from the resolved artifact.
+  A loader, not a redesign, and worth writing once a second plugin exists.
+- **A dockable side-panel surface** — one interface (a title and a `Node`), the cheapest honest answer if a
+  plugin ever needs to *show* something. Full editor views stay out.
+- **Nothing here has a second implementor yet**, and one implementor proves little. The contract's real
+  validation is a second plugin; until then the mitigation is that the SDK consumes it as an ordinary
+  plugin.

@@ -1,0 +1,28 @@
+name: CI
+
+# The simplest CI in the BotMaker repositories, and deliberately so: this module has no BotMaker upstream to
+# check out and one third-party dependency (javafx-controls, provided). There is nothing to stage.
+#
+# Tests DO run here, unlike in botmaker-session and botmaker-shared where CI is a compile gate. The whole
+# suite is CatalogBuilderTest and it takes under a tenth of a second, and what it proves — that a method
+# reference still resolves to the overload it names — is the assumption every plugin's catalog rests on.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build and test
+        run: mvn -B verify
