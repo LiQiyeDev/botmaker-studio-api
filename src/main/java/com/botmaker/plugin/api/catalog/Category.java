@@ -37,4 +37,14 @@ public record Category(String id, String label) {
     public static Category of(String id) {
         return new Category(id, id);
     }
+
+    /**
+     * A category with an explicit label, falling back to the id when the label is blank.
+     *
+     * <p>This is the shape a generated catalog uses: an annotation element cannot be left out, so "no label
+     * given" arrives as the empty string rather than as an absence, and one overload absorbs both cases.
+     */
+    public static Category of(String id, String label) {
+        return label == null || label.isBlank() ? of(id) : new Category(id, label);
+    }
 }

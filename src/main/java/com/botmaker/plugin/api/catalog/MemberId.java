@@ -1,6 +1,7 @@
 package com.botmaker.plugin.api.catalog;
 
 import java.lang.invoke.SerializedLambda;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +52,58 @@ public record MemberId(Class<?> declaringClass, String name, String descriptor) 
             throw new IllegalArgumentException("catalog names a member of a class that cannot be loaded: " + owner, e);
         }
         return new MemberId(declaring, lambda.getImplMethodName(), lambda.getImplMethodSignature());
+    }
+
+    /**
+     * The identity of a method already in hand — the route {@link CatalogBuilder#addAll()} takes, where there
+     * is no method reference because nobody wrote one.
+     *
+     * <p>The descriptor is computed rather than read, and it must come out byte-identical to the one javac
+     * puts in a {@link SerializedLambda}: the two routes into this record meet in
+     * {@link PaletteCatalog#mergedWith}, in a Studio menu lookup and in every equality test below, and an id
+     * that differs only in how it was built is an entry that silently matches nothing.
+     */
+    public static MemberId of(Method method) {
+        Objects.requireNonNull(method, "method");
+        return new MemberId(method.getDeclaringClass(), method.getName(),
+                descriptor(method.getParameterTypes(), method.getReturnType()));
+    }
+
+    /** As {@link #of(Method)}, for a constructor; the name is {@link #CONSTRUCTOR} and the return type void. */
+    public static MemberId of(Constructor<?> constructor) {
+        Objects.requireNonNull(constructor, "constructor");
+        return new MemberId(constructor.getDeclaringClass(), CONSTRUCTOR,
+                descriptor(constructor.getParameterTypes(), void.class));
+    }
+
+    private static String descriptor(Class<?>[] parameterTypes, Class<?> returnType) {
+        StringBuilder out = new StringBuilder("(");
+        for (Class<?> parameterType : parameterTypes) {
+            appendDescriptor(out, parameterType);
+        }
+        return appendDescriptor(out.append(')'), returnType).toString();
+    }
+
+    private static StringBuilder appendDescriptor(StringBuilder out, Class<?> type) {
+        Class<?> element = type;
+        while (element.isArray()) {
+            out.append('[');
+            element = element.getComponentType();
+        }
+        if (!element.isPrimitive()) {
+            return out.append('L').append(element.getName().replace('.', '/')).append(';');
+        }
+        return out.append(switch (element.getName()) {
+            case "boolean" -> 'Z';
+            case "byte" -> 'B';
+            case "char" -> 'C';
+            case "short" -> 'S';
+            case "int" -> 'I';
+            case "long" -> 'J';
+            case "float" -> 'F';
+            case "double" -> 'D';
+            default -> 'V';
+        });
     }
 
     private static SerializedLambda serialized(MemberRef ref) {

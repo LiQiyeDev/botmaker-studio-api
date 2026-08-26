@@ -58,11 +58,22 @@ public record FacadeEntry(Class<?> type, Category category, FacadeRole role, Str
         return label != null && !label.isBlank() ? label : simpleName();
     }
 
+    /**
+     * The <b>lead</b> shape of this member name — what picking the name out of a menu inserts.
+     *
+     * <p>A palette entry is a name, not an overload, so a name with four shapes is one entry: this is the
+     * one it offers first and {@link #overloads(String)} is the submenu behind it. The lead is first in
+     * {@link #members()} by construction rather than by a flag, which is why nothing here has to be
+     * declared twice.
+     */
     public Optional<MemberEntry> member(String name) {
         return members.stream().filter(m -> m.id().name().equals(name)).findFirst();
     }
 
-    /** Every offered member of this facade with the given name — one per offered overload. */
+    /**
+     * Every offered member of this facade with the given name — one per overload, the lead first and the
+     * rest in the order the menu should list them behind it.
+     */
     public List<MemberEntry> overloads(String name) {
         return members.stream().filter(m -> m.id().name().equals(name)).toList();
     }
