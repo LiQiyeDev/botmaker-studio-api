@@ -13,16 +13,25 @@ import java.util.Optional;
  * SDK own this simple name?" — the deduction that decides whether {@code Point} in a bot's source means the
  * SDK's or {@code java.awt}'s — without a hand-mirrored list of fully-qualified names.
  *
+ * <p><b>Present means curated.</b> A type in the catalog offers exactly the members it lists and nothing
+ * else; a type absent from the catalog is not offered at all. An entry with an empty member list is
+ * therefore a verdict rather than an omission — it is how an enum whose constants are the whole point, or a
+ * type reached only as a variable, is catalogued for its identity without proposing any of its methods.
+ *
  * @param type     the facade class
  * @param category the group it is filed under
+ * @param role     how far into the editor it reaches
+ * @param icon     a menu glyph, or {@code null} for the editor's own fallback
  * @param label    what to show, or {@code null} for the class's simple name
  * @param members  the offered members, in declaration order
  */
-public record FacadeEntry(Class<?> type, Category category, String label, List<MemberEntry> members) {
+public record FacadeEntry(Class<?> type, Category category, FacadeRole role, String icon, String label,
+                          List<MemberEntry> members) {
 
     public FacadeEntry {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(category, "category");
+        Objects.requireNonNull(role, "role");
         members = List.copyOf(members);
     }
 
@@ -32,6 +41,16 @@ public record FacadeEntry(Class<?> type, Category category, String label, List<M
 
     public String qualifiedName() {
         return type.getName();
+    }
+
+    /** True for {@link FacadeRole#MENU} and {@link FacadeRole#HIDDEN} — the recognition set. */
+    public boolean isFacade() {
+        return role != FacadeRole.VALUE;
+    }
+
+    /** True for {@link FacadeRole#MENU} alone — the set the insert menus show. */
+    public boolean inMenus() {
+        return role == FacadeRole.MENU;
     }
 
     /** The label if one was given, the class's simple name otherwise. Never {@code null}. */

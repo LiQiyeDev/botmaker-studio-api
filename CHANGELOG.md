@@ -25,5 +25,12 @@ is allowed to make. Additions arrive as `default` methods.
   declaring class, member name and JVM descriptor out of the reference's `SerializedLambda`, so a catalog
   naming a renamed or deleted member fails the build rather than a menu, and an overload set is resolved
   exactly (`.<Point>add(Mouse::click)`).
+- **A facade entry carries its role and its glyph**, not only its category: `FacadeRole` (`MENU` / `HIDDEN` /
+  `VALUE`) with `FacadeEntry.isFacade()` / `inMenus()`, an `icon`, `CatalogBuilder.facadeIcon(…)` and
+  `PaletteCatalog.withRole(…)`. This is the type-level half of curation — the member list is the other half —
+  and it is what lets a host retire a hand-mirrored enum of the plugin's own class list.
+- **Present means curated.** A type in a catalog offers exactly the members it lists; a type absent from it is
+  not offered. An entry with an empty member list is a verdict, not an omission — how an enum whose constants
+  are the whole point is catalogued for its identity without proposing any method.
 - One dependency, `javafx-controls`, at `provided` scope — a slot editor returns a `javafx.scene.Node`.
   Nothing else, and no parsing library: a plugin writes back Java source as text.

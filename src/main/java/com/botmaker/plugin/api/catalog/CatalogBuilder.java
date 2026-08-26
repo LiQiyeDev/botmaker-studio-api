@@ -36,17 +36,21 @@ public final class CatalogBuilder {
     private static final class Draft {
         private final Class<?> type;
         private Category category;
+        private FacadeRole role;
+        private String icon;
         private String label;
         private final List<MemberEntry> members = new ArrayList<>();
 
-        Draft(Class<?> type, Category category, String label) {
+        Draft(Class<?> type, Category category, FacadeRole role, String icon, String label) {
             this.type = type;
             this.category = category;
+            this.role = role;
+            this.icon = icon;
             this.label = label;
         }
 
         FacadeEntry freeze() {
-            return new FacadeEntry(type, category, label, members);
+            return new FacadeEntry(type, category, role, icon, label, members);
         }
     }
 
@@ -58,7 +62,8 @@ public final class CatalogBuilder {
 
     CatalogBuilder(List<FacadeEntry> existing) {
         for (FacadeEntry entry : existing) {
-            Draft draft = new Draft(entry.type(), entry.category(), entry.label());
+            Draft draft = new Draft(entry.type(), entry.category(), entry.role(), entry.icon(),
+                    entry.label());
             draft.members.addAll(entry.members());
             drafts.put(entry.type(), draft);
         }
@@ -71,14 +76,28 @@ public final class CatalogBuilder {
      * the catalog <em>reopens</em> it rather than replacing it — which is what makes the previous-plus-deltas
      * spelling work: a later version reopens {@code Mouse} and appends the members it gained.
      *
-     * <p>Reopening also updates the category, so a facade can be refiled without being rewritten.
+     * <p>Reopening also updates the category and the role, so a facade can be refiled or demoted without
+     * being rewritten.
      */
     public CatalogBuilder facade(Class<?> type, Category category) {
+        return facade(type, category, FacadeRole.MENU);
+    }
+
+    /** As {@link #facade(Class, Category)}, choosing how far into the editor the type reaches. */
+    public CatalogBuilder facade(Class<?> type, Category category, FacadeRole role) {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(category, "category");
-        Draft draft = drafts.computeIfAbsent(type, t -> new Draft(t, category, null));
+        Objects.requireNonNull(role, "role");
+        Draft draft = drafts.computeIfAbsent(type, t -> new Draft(t, category, role, null, null));
         draft.category = category;
+        draft.role = role;
         current = draft;
+        return this;
+    }
+
+    /** Gives the open facade a menu glyph. */
+    public CatalogBuilder facadeIcon(String icon) {
+        open().icon = icon;
         return this;
     }
 

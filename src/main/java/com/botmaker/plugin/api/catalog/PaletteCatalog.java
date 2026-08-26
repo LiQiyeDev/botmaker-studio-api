@@ -82,6 +82,12 @@ public record PaletteCatalog(List<FacadeEntry> facades) {
         return facades.stream().filter(f -> f.category().equals(category)).toList();
     }
 
+    /** Every facade with one of these roles, in declaration order. */
+    public List<FacadeEntry> withRole(FacadeRole... roles) {
+        Set<FacadeRole> wanted = Set.of(roles);
+        return facades.stream().filter(f -> wanted.contains(f.role())).toList();
+    }
+
     /** The categories that have at least one facade, in the order their first facade was declared. */
     public List<Category> categories() {
         Set<Category> seen = new LinkedHashSet<>();
@@ -113,7 +119,10 @@ public record PaletteCatalog(List<FacadeEntry> facades) {
         }
         CatalogBuilder merged = toBuilder();
         for (FacadeEntry entry : other.facades()) {
-            merged.facade(entry.type(), entry.category());
+            merged.facade(entry.type(), entry.category(), entry.role());
+            if (entry.icon() != null) {
+                merged.facadeIcon(entry.icon());
+            }
             if (entry.label() != null) {
                 merged.facadeLabel(entry.label());
             }
