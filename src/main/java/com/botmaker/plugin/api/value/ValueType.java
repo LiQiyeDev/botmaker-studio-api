@@ -1,0 +1,211 @@
+package com.botmaker.plugin.api.value;
+
+import java.util.Objects;
+
+/**
+ * One kind of value a project variable can hold — {@code DURATION}, {@code POINT}, a plugin's own
+ * {@code CHANNEL}. <b>Not an enum any more</b>, which is the whole of this class's reason to exist.
+ *
+ * <h2>Why it stopped being an enum</h2>
+ *
+ * <p>It was seventeen constants in the SDK, and a closed set is exactly right for as long as there is one
+ * plugin. It is wrong the moment there are two: an enum cannot be extended, so a Discord plugin wanting a
+ * {@code Channel} variable would have to be granted a constant in somebody else's enum — a back door of
+ * precisely the kind the plugin platform exists to close. The seventeen are still declared in one place; that
+ * place is now the SDK's own {@linkplain ValueCatalog catalog}, registered the same way any plugin registers
+ * its own, through the same builder, with no privilege the second plugin is denied.
+ *
+ * <p>What is lost with the enum is the exhaustive {@code switch}, and it was load-bearing in two places (the
+ * literal writer and the closed-set test). Both become {@link ValueCatalog} lookups, which is the honest
+ * shape: neither could ever have been exhaustive over a set the host does not own.
+ *
+ * <h2>Identity is the id, and the id is persisted</h2>
+ *
+ * <p>{@link #id()} is what the project file says and what {@link #equals} compares — never the object, which
+ * a plugin classloader would make useless (two loaders, two {@code Channel} types, one file). Renaming an id
+ * rewrites every stored project's meaning silently; don't.
+ *
+ * <h2>Unknown types</h2>
+ *
+ * <p>{@link #unknown(String)} is what a catalog answers for an id nothing registered — a plugin that is not
+ * installed, or was uninstalled after writing the file. It is {@linkplain #known() marked}, holds its raw
+ * text, renders read-only and <b>declines to emit</b>. That state was impossible while this was an enum, and
+ * is unavoidable now: an open registry is a registry with holes in it. The alternative — dropping the value —
+ * destroys a user's data because a jar is missing.
+ *
+ * <h2>Built, never constructed</h2>
+ *
+ * <p>Instances come from {@link #of(String)}. There is no public constructor and this is not a record,
+ * deliberately: a record's canonical constructor is part of its binary signature, so gaining one component
+ * would throw {@code NoSuchMethodError} in every plugin already compiled. A builder can gain a method.
+ */
+public final class ValueType {
+
+    private final String id;
+    private final String label;
+    private final String sourceName;
+    private final String boxedName;
+    private final boolean primitive;
+    private final boolean closedSet;
+    private final String importName;
+    private final boolean known;
+
+    private ValueType(Builder b, boolean known) {
+        this.id = b.id;
+        this.label = b.label == null ? b.id : b.label;
+        this.sourceName = b.sourceName;
+        this.boxedName = b.boxedName == null ? b.sourceName : b.boxedName;
+        this.primitive = b.primitive;
+        this.closedSet = b.closedSet;
+        this.importName = b.importName == null ? "" : b.importName;
+        this.known = known;
+    }
+
+    /**
+     * A builder for the type {@code id} names. The id is the persisted wire form; by convention it is
+     * {@code SCREAMING_SNAKE_CASE}, and it must be unique within the catalog that registers it.
+     */
+    public static Builder of(String id) {
+        return new Builder(id);
+    }
+
+    /**
+     * The placeholder for an id nothing registered. Its value survives untouched, it renders read-only, and
+     * it emits nothing — see the class note.
+     */
+    public static ValueType unknown(String id) {
+        String safe = id == null || id.isBlank() ? "?" : id.trim();
+        return new ValueType(new Builder(safe).label(safe).source(safe), false);
+    }
+
+    /** The stable wire form, as the project file spells it. Persisted — do not change. */
+    public String id() {
+        return id;
+    }
+
+    /** What a menu calls this. Free to change; nothing is stored from it. */
+    public String label() {
+        return label;
+    }
+
+    /** How a generator writes this type in source: {@code int}, {@code Key}, {@code java.time.Duration}. */
+    public String sourceName() {
+        return sourceName;
+    }
+
+    /** How it is written inside {@code List<…>} — {@code Integer} for {@code int}. */
+    public String boxedName() {
+        return boxedName;
+    }
+
+    public boolean isPrimitive() {
+        return primitive;
+    }
+
+    /**
+     * The class a generated file must import to write {@link #sourceName()}, or {@code ""} for a primitive
+     * and for a type written fully qualified.
+     *
+     * <p>A name, not a {@code Class<?>}: the host and the plugin that owns this type may be on different
+     * classloaders, where an identity comparison silently answers false.
+     */
+    public String importName() {
+        return importName;
+    }
+
+    /**
+     * Whether this type's values <em>are</em> a set the editor already shows in full — which is what makes
+     * {@link ValueShape#ONE_OF} over it meaningless. "One of yes and no" is a boolean, said twice and worse.
+     */
+    public boolean isClosedSet() {
+        return closedSet;
+    }
+
+    /** Whether an author can usefully write down a set of values of this type. */
+    public boolean shapeable() {
+        return !closedSet;
+    }
+
+    /**
+     * False when this is a {@linkplain #unknown(String) placeholder} for an unregistered id. A generator must
+     * check this before emitting a field: there is no source spelling for a type nobody could describe.
+     */
+    public boolean known() {
+        return known;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return o instanceof ValueType other && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return id;
+    }
+
+    /** Collects one type's description. Every setter is optional except {@link #source(String)}. */
+    public static final class Builder {
+
+        private final String id;
+        private String label;
+        private String sourceName;
+        private String boxedName;
+        private boolean primitive;
+        private boolean closedSet;
+        private String importName;
+
+        private Builder(String id) {
+            this.id = Objects.requireNonNull(id, "id").trim();
+            if (this.id.isEmpty()) throw new IllegalArgumentException("a value type needs an id");
+        }
+
+        /** What a menu calls this. Defaults to the id. */
+        public Builder label(String label) {
+            this.label = label;
+            return this;
+        }
+
+        /** How a generator writes the type in source. Required. */
+        public Builder source(String sourceName) {
+            this.sourceName = sourceName;
+            return this;
+        }
+
+        /** How it is written inside {@code List<…>}, when that differs — a primitive's box. */
+        public Builder boxed(String boxedName) {
+            this.boxedName = boxedName;
+            return this;
+        }
+
+        /** Marks a Java primitive, which changes only what a list of them is written as. */
+        public Builder primitive() {
+            this.primitive = true;
+            return this;
+        }
+
+        /** Marks a type whose values are already a set the editor shows in full. */
+        public Builder closedSet() {
+            this.closedSet = true;
+            return this;
+        }
+
+        /** The class a generated file imports to write {@link #source(String)} by simple name. */
+        public Builder importing(String fqn) {
+            this.importName = fqn;
+            return this;
+        }
+
+        public ValueType build() {
+            if (sourceName == null || sourceName.isBlank()) {
+                throw new IllegalArgumentException("value type " + id + " declares no source spelling");
+            }
+            return new ValueType(this, true);
+        }
+    }
+}

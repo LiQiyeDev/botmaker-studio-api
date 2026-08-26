@@ -14,6 +14,9 @@ one artifact (`javafx-controls`, `provided`).
   the three services it exposes (`Theme`, `Capture`, `Dialogs`) plus `Region`.
 - `com.botmaker.plugin.api.catalog` — `PaletteCatalog`, `CatalogBuilder`, `Category`, `FacadeEntry`,
   `MemberEntry`, `MemberId`, `MemberRef` and the arity shapes `M0`–`M5`.
+- `com.botmaker.plugin.api.value` — the **value vocabulary**: `ValueType`, `ValueShape`, `ValueChoice`,
+  `Visibility`, `Range`, `ValueCodec` and `ValueCatalog`. What a bot's *variable* can be, which is a question
+  the contract answers so a plugin can own a type without the SDK granting it one.
 
 Studio is the host; `botmaker-sdk` is the first plugin — a *privileged default* plugin, but a plugin, with
 no back door. That is what makes the contract honest: if the SDK needs something this module does not
@@ -37,6 +40,32 @@ and it is the plugin's own class.)
 `replaceWith(String, String...)` takes one. This was not a simplification imposed on the host — it is what
 the host already did, since fifteen of its nineteen built-in editors handed back source text and let it
 re-parse. Keeping it that way is what stops the host's parser from becoming plugin surface.
+
+## The value vocabulary, and why `ValueType` is not an enum
+
+`ValueType` is a **final class whose identity is its persisted `id()`**, reached through `ValueType.of(id)`
+and registered in a `ValueCatalog`. An enum would have been shorter and is wrong for the same reason the whole
+module exists: a plugin wanting a `Channel` variable would need a constant added to somebody else's enum.
+
+- **Compare by `id()`, never by object identity.** Two plugin classloaders each hold their own copy of a
+  class; the id is what a project file holds and the only comparison that is true across them.
+- **`ValueType.unknown(id)` is a supported state, not an error path.** A type nothing registered keeps its raw
+  `List<String>`, renders read-only and declines to emit. That is what a project opened without one of its
+  plugins looks like, and refusing the file or coercing the value would destroy a user's data because a jar is
+  missing. An **absent** id is different and reads as text — a field older than the vocabulary.
+- **`ValueCodec<T>` is per item.** Shape (`ONE`/`ONE_OF`/`ANY_OF`/`OPEN_LIST`) is composed above it by
+  `ValueCatalog.initializer`, so a codec is written once and serves all four. `T` never crosses to the host —
+  only `literal(parse(wire))` behind a wildcard capture — which is what keeps rule 2 above true for values.
+- **`ValueCatalog.merge` is left-biased and never throws.** Deliberately unlike a generation collision, which
+  is a hard error: refusing to merge would break every project that has a plugin installed.
+- **No Jackson here, and none is coming.** The vocabulary declares the wire *form* — an id out, a total
+  factory back — and whoever owns the file supplies the parser (the SDK's `internal/authoring/ValueJson`).
+  Adding a JSON library to this module would impose it on every plugin and tie the contract to its
+  compatibility rate.
+- **`ValueType` and `ValueCatalog.Entry` are classes with builders, not records**, for trap #2 of
+  `../docs/refactor/25-compatibility.md`: adding a component to a public record changes its canonical
+  constructor descriptor, which is `NoSuchMethodError` in every already-compiled plugin. `ValueChoice` and
+  `Range` *are* records and are therefore **frozen** — their components may not grow.
 
 ## The catalog, and why it is method references
 
@@ -81,7 +110,7 @@ it truly had, never more.
 ## Building
 
 ```bash
-mvn test        # CatalogBuilderTest — 13 tests, the only behaviour in the module
+mvn test        # CatalogBuilderTest (13) + ValueVocabularyTest (8) — the module's only behaviour
 mvn install     # com.github.LiQiyeDev:botmaker-studio-api:0.0.0-SNAPSHOT
 ```
 
