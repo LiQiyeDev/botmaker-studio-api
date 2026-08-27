@@ -118,6 +118,46 @@ public final class ValueCatalog {
      * The classes a field of this type has to import — empty for a primitive, a JDK type written fully
      * qualified, or an unknown type.
      */
+    /**
+     * The stored form a freshly created value of {@code typeId} starts with — {@code ""} for an id nothing
+     * registered, which is the only honest seed for a type nobody can describe.
+     */
+    public String defaultItem(String typeId) {
+        return codec(typeId).map(ValueCodec::defaultWire).orElse("");
+    }
+
+    /**
+     * One stored item, read and written back canonically — {@code store(parse(wire))}. Total, and a fixed
+     * point: normalising twice changes nothing, which is what lets the editor show the value the bot will
+     * actually get rather than the text somebody happened to type.
+     *
+     * <p><b>An id nothing registered is returned untouched.</b> That is the {@linkplain ValueType#unknown
+     * unknown-type} rule at the one place it costs something: the host cannot canonicalise what it cannot
+     * read, and rewriting it to {@code ""} would destroy a value whose plugin is merely not installed today.
+     */
+    public String normalize(String typeId, String wire) {
+        String safe = wire == null ? "" : wire;
+        return codec(typeId).map(codec -> canonical(codec, safe)).orElse(safe);
+    }
+
+    /**
+     * One stored item as Java source, together with the class the file must import to write it — empty when
+     * no import is needed, and {@link Optional#empty()} for an id nothing registered.
+     *
+     * <p>Unlike {@link #initializer}, which composes the shape and writes everything fully qualified for a
+     * generated file, this is the single-item form the <em>editor</em> needs when it drops a value into the
+     * user's own source, where an import is arranged rather than avoided.
+     */
+    public Optional<Literal> literal(String typeId, String wire) {
+        Optional<ValueCodec<?>> found = codec(typeId);
+        if (found.isEmpty()) return Optional.empty();
+        return Optional.of(new Literal(render(found.get(), wire == null ? "" : wire),
+                type(typeId).importName()));
+    }
+
+    /** One item's Java source and the class it needs imported ({@code ""} when it needs none). */
+    public record Literal(String source, String importName) {}
+
     public List<String> imports(ValueChoice choice) {
         if (choice == null) return List.of();
         String fqn = choice.type().importName();
@@ -146,6 +186,10 @@ public final class ValueCatalog {
     /** The capture that lets the host call a codec it cannot name the type parameter of. */
     private static <T> String render(ValueCodec<T> codec, String wire) {
         return codec.literal(codec.parse(wire));
+    }
+
+    private static <T> String canonical(ValueCodec<T> codec, String wire) {
+        return codec.store(codec.parse(wire));
     }
 
     /**

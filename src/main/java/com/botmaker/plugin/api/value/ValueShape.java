@@ -20,13 +20,35 @@ package com.botmaker.plugin.api.value;
 public enum ValueShape {
 
     /** One value, free within its type. */
-    ONE,
+    ONE("One value", ""),
     /** One value, out of a set the author writes down. */
-    ONE_OF,
+    ONE_OF("One of…", "One of "),
     /** Several values out of that set — {@code List<T>} in source. */
-    ANY_OF,
+    ANY_OF("Many of…", "Many of "),
     /** A list the user fills in themselves, out of no set at all — {@code List<T>} too. */
-    OPEN_LIST;
+    OPEN_LIST("List of…", "List of ");
+
+    private final String label;
+    private final String prefix;
+
+    ValueShape(String label, String prefix) {
+        this.label = label;
+        this.prefix = prefix;
+    }
+
+    /**
+     * What a shape control calls this. The words are the contract's rather than each host's because a
+     * variable declared {@code ONE_OF} reads the same wherever it is shown, and two hosts inventing their
+     * own wording for one stored shape is a difference the user has to translate.
+     */
+    public String label() {
+        return label;
+    }
+
+    /** What precedes a type's own label to name the pair — {@code "One of "} before {@code "Point"}. */
+    public String prefix() {
+        return prefix;
+    }
 
     /** Whether the author writes the set of values down. */
     public boolean hasOptions() {

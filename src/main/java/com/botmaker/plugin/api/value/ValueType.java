@@ -1,5 +1,6 @@
 package com.botmaker.plugin.api.value;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -47,6 +48,8 @@ public final class ValueType {
     private final String boxedName;
     private final boolean primitive;
     private final boolean closedSet;
+    private final List<String> options;
+    private final boolean bounded;
     private final String importName;
     private final boolean known;
 
@@ -57,6 +60,8 @@ public final class ValueType {
         this.boxedName = b.boxedName == null ? b.sourceName : b.boxedName;
         this.primitive = b.primitive;
         this.closedSet = b.closedSet;
+        this.options = List.copyOf(b.options);
+        this.bounded = b.bounded;
         this.importName = b.importName == null ? "" : b.importName;
         this.known = known;
     }
@@ -127,6 +132,29 @@ public final class ValueType {
     }
 
     /**
+     * The values this type brings with it, in the order they should be offered — an enum's own constants.
+     * Empty when the set is not the type's to supply, which is every type whose choices the author writes
+     * down, and also a {@linkplain #isClosedSet() closed} one whose two states are a single control rather
+     * than a list ({@code Yes/No} is a tick box, not a dropdown of two).
+     *
+     * <p>Each entry is a stored item, in the same spelling {@link ValueCodec#store} produces, so the label a
+     * radio button carries and the value it stores are one string rather than two that must agree.
+     */
+    public List<String> options() {
+        return options;
+    }
+
+    /**
+     * Whether a declared minimum and maximum mean anything here — the numeric types, and nothing else.
+     *
+     * <p>It is the type's answer rather than the editor's so that the dialog offering a range and the
+     * normaliser enforcing one cannot come to disagree about which types have one.
+     */
+    public boolean bounded() {
+        return bounded;
+    }
+
+    /**
      * False when this is a {@linkplain #unknown(String) placeholder} for an unregistered id. A generator must
      * check this before emitting a field: there is no source spelling for a type nobody could describe.
      */
@@ -158,6 +186,8 @@ public final class ValueType {
         private String boxedName;
         private boolean primitive;
         private boolean closedSet;
+        private List<String> options = List.of();
+        private boolean bounded;
         private String importName;
 
         private Builder(String id) {
@@ -192,6 +222,22 @@ public final class ValueType {
         /** Marks a type whose values are already a set the editor shows in full. */
         public Builder closedSet() {
             this.closedSet = true;
+            return this;
+        }
+
+        /**
+         * The values this type supplies itself — an enum's constants, in declaration order, each spelled the
+         * way {@link ValueCodec#store} spells it. Declaring them does <em>not</em> make the type closed; the
+         * two questions are separate, and {@link #closedSet()} answers the other one.
+         */
+        public Builder options(List<String> options) {
+            this.options = options == null ? List.of() : List.copyOf(options);
+            return this;
+        }
+
+        /** Marks a type a declared minimum and maximum apply to — a number. */
+        public Builder bounded() {
+            this.bounded = true;
             return this;
         }
 

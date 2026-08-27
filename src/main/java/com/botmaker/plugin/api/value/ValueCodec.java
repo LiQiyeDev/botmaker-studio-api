@@ -39,6 +39,23 @@ public interface ValueCodec<T> {
     /** What one stored item means. Total: unreadable text answers this type's default, never an exception. */
     T parse(String wire);
 
+    /**
+     * The stored form a freshly created value of this type starts with.
+     *
+     * <p>The default is {@code store(parse(""))} — "what does empty text mean, written back canonically" —
+     * which is the right answer for every type whose default <em>is</em> its empty reading: a number that
+     * starts at zero, a flag that starts false, an enum that starts at its first constant. Override it only
+     * when the seed is a choice rather than a fallback: the SDK's image template starts at the placeholder
+     * every project ships, because an empty chip is a value the bot cannot run on, and no amount of parsing
+     * {@code ""} discovers that.
+     *
+     * <p>Total like everything else here, and a fixed point: {@code store(parse(defaultWire()))} must equal
+     * {@code defaultWire()}, or a freshly created value changes the moment it is read back.
+     */
+    default String defaultWire() {
+        return store(parse(""));
+    }
+
     /** The stored form of one item — the input {@link #parse} reads back. Canonical, so a diff is stable. */
     String store(T value);
 

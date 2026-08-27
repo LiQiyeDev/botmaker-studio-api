@@ -44,6 +44,11 @@ public record ValueChoice(ValueType type, ValueShape shape) {
         return shape.hasOptions();
     }
 
+    /** What the user is shown — "Point", "One of Point", "Many of Point", or "List of Point". */
+    public String label() {
+        return shape.prefix() + type.label();
+    }
+
     /** How a generator writes this: {@code java.time.Duration}, or {@code List<Key>}. */
     public String sourceName() {
         return isList() ? "java.util.List<" + type.boxedName() + ">" : type.sourceName();

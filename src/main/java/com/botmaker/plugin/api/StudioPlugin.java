@@ -1,6 +1,8 @@
 package com.botmaker.plugin.api;
 
 import com.botmaker.plugin.api.catalog.PaletteCatalog;
+import com.botmaker.plugin.api.value.ValueCatalog;
+import com.botmaker.plugin.api.value.ValueType;
 
 import java.util.List;
 
@@ -21,6 +23,8 @@ import java.util.List;
  *       their order.</li>
  *   <li><b>slot editors</b> — {@link #slotEditors()}: "for a value of type X, show this UI instead of a
  *       text field".</li>
+ *   <li><b>value types</b> — {@link #valueTypes()}: the types a project variable may hold, and what their
+ *       stored text means.</li>
  *   <li><b>generation</b> — not declared here. A plugin that generates project files owns whole files keyed
  *       by their project-relative path, and contributes them through its own authoring entry point.</li>
  * </ul>
@@ -64,5 +68,23 @@ public interface StudioPlugin {
      */
     default List<SlotEditor> slotEditors() {
         return List.of();
+    }
+
+    /**
+     * The value types this plugin registers, with the codec that says what each one's stored text means.
+     *
+     * <p>This is the surface that makes the vocabulary <b>open</b>. It was a closed enum in the SDK until
+     * 2026-08-27, which is right for one plugin and wrong for two: a plugin wanting a {@code Channel}
+     * variable would have needed a constant granted in somebody else's enum. Now it declares one.
+     *
+     * <p><b>The id is the identity, and it is what the project file holds.</b> The host merges every
+     * plugin's catalog by {@link ValueType#id()} and refuses two plugins claiming one id, because a project
+     * that opens differently depending on which plugin loaded first is not a project. Prefix an id that is
+     * not obviously yours. A type whose plugin is absent is not an error either — the value keeps its raw
+     * text, renders read-only and declines to emit — so uninstalling a plugin costs the user nothing but
+     * the ability to edit.
+     */
+    default ValueCatalog valueTypes() {
+        return ValueCatalog.empty();
     }
 }
