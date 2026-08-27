@@ -22,8 +22,12 @@ one artifact (`javafx-controls`, `provided`).
   `String`s on purpose — an annotation element's type must be visible from the module *declaring* the
   annotation, so a contract annotation can never take a plugin-defined enum constant, and the processor
   validates the strings instead.
-- `com.botmaker.plugin.api.meta` — `@Internal`, and (from the SDK's `api.meta`, on its way here) the pointer
-  vocabulary. **`@Internal` is a claim about versioning, not about menus**: not surface, freely breakable,
+- `com.botmaker.plugin.api.meta` — `@Internal`, and **the pointer vocabulary, which arrived from the SDK's
+  `api.meta` in 1.2.0**: `@ReplacedBy`, `@Replaces` and `@Since`. They are here because a plugin renaming its
+  own types wants exactly the machinery the SDK already had, and `botmaker-plugin-processor` checks them for
+  any plugin rather than for the SDK specifically. A pointer may name a target in **another module** — the
+  SDK's shims point here — and the `@version` on a `@Replaces` entry is then the **old** module's version,
+  the last release the old spelling existed in. **`@Internal` is a claim about versioning, not about menus**: not surface, freely breakable,
   owed no `@Since` and no redirect. It targets packages too, so one `package-info.java` classifies a package.
   `@Internal` and `@Facade` on one type is a compile error — offering a member inserts its name into a bot's
   source, which is exactly what makes a type surface; `@Facade(role = "HIDDEN")` is how a type is recognised

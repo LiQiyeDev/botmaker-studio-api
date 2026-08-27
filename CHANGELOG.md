@@ -45,5 +45,14 @@ is allowed to make. Additions arrive as `default` methods.
   A type that is both `@Internal` and `@Facade` is a compile error, because offering a member inserts its
   name into a bot's source, which is what makes a type surface. To be recognised without being proposed, use
   `@Facade(role = "HIDDEN")`.
+- **The compatibility vocabulary is the contract's, in `com.botmaker.plugin.api.meta`:** `@ReplacedBy`,
+  `@Replaces` and `@Since`, joining `@Internal`. They were `com.botmaker.sdk.api.meta`, which made them the
+  SDK's rather than every plugin's — while a plugin renaming its own types wants exactly the same machinery,
+  and `botmaker-plugin-processor` will check it for any plugin, not only the SDK. Their grammar is unchanged:
+  `@ReplacedBy` names `fqn`, `fqn#member` or `fqn#<init>` (`{}` meaning *nothing takes my place*, an explicit
+  statement rather than an omission), `@Replaces` names `fqn[#member][(arity)]@<version>` where the version
+  is the **last release the old spelling existed in** — the old module's version, when a pointer crosses
+  modules. The SDK's spellings survive one minor as `@Deprecated(forRemoval = true)` shims pointing here, and
+  the pointer pair therefore carries its own move.
 - One dependency, `javafx-controls`, at `provided` scope — a slot editor returns a `javafx.scene.Node`.
   Nothing else, and no parsing library: a plugin writes back Java source as text.

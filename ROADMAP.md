@@ -5,6 +5,27 @@ reasoning.
 
 ## Done
 
+### 2026-08-27 — the compatibility vocabulary arrives (plugin platform, phase 8c.4)
+
+`@ReplacedBy`, `@Replaces` and `@Since` are `com.botmaker.plugin.api.meta` now, beside `@Internal`. They were
+`com.botmaker.sdk.api.meta`, which made them the SDK's rather than every plugin's — compatibility trap #8:
+a second plugin renaming its own public types had no equivalent and its users' bots broke with a bare compile
+error. `botmaker-plugin-processor` already checked them by FQN string, so the move is what makes that
+checking usable by anybody.
+
+- **The SDK's three survive one minor** as `@Deprecated(forRemoval = true)` shims with `@ReplacedBy` at the
+  new FQNs, so the pointer pair's first use is its own move. Nothing about the grammar changed.
+- **A pointer may name a target in another module** — which the move is the first instance of. The
+  `@version` on such a `@Replaces` entry is the **old** module's: the last release *that* module shipped the
+  old spelling in, because the entry is a statement about a spelling being retired.
+- **A scan that folds meta-annotations must filter to direct ones.** These three annotate each other now, so
+  ClassGraph reports `@Since`'s own `@Replaces` on every element that merely uses `@Since`. `javax.lang.model`
+  has no such folding, so the processor is unaffected; a host reading pointers out of a jar is not.
+
+Two earlier arrivals in this module are logged in `../botmaker-sdk/ROADMAP.md` rather than here, because the
+work that moved them was the SDK's: the palette annotations and `@Internal` (phases 8 and 8c.2), and the
+value vocabulary under `com.botmaker.plugin.api.value` (phase 10a).
+
 ### 2026-08-26 — the module exists (plugin platform, phase 5)
 
 Created as the seventh BotMaker repository, first in the umbrella reactor. It holds the contract that lets
