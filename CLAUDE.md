@@ -10,8 +10,8 @@ Read the umbrella `../CLAUDE.md` first for how the six modules fit together, and
 Interfaces and records. Nothing else. It has no implementation, references no Studio type, and depends on
 one artifact (`javafx-controls`, `provided`).
 
-- `com.botmaker.plugin.api` — `StudioPlugin`, `SlotEditor`, `SlotContext`, `TypeRef`, `StudioServices` and
-  the three services it exposes (`Theme`, `Capture`, `Dialogs`) plus `Region`.
+- `com.botmaker.plugin.api` — `StudioPlugin`, `SlotEditor`, `SlotContext`, `ValueContext`, `TypeRef`,
+  `StudioServices` and the three services it exposes (`Theme`, `Capture`, `Dialogs`) plus `Region`.
 - `com.botmaker.plugin.api.catalog` — `PaletteCatalog`, `Category`, `FacadeEntry`, `MemberEntry`,
   `MemberId`, and the package-private `SourceOrder`. The *result* types: `PaletteCatalog.of(Class<?>...)`
   builds them by reflection. `CatalogBuilder`, `MemberRef` and the arity shapes `M0`–`M5` were deleted on
@@ -48,6 +48,36 @@ one artifact (`javafx-controls`, `provided`).
 Studio is the host; `botmaker-sdk` is the first plugin — a *privileged default* plugin, but a plugin, with
 no back door. That is what makes the contract honest: if the SDK needs something this module does not
 expose, the contract is wrong, not the SDK.
+
+## What may go on `StudioServices` — the host-only rule
+
+**A service belongs here only when the host is the *only* possible source of it.** Not when the host happens
+to have written it first, and not when a real editor needed it — that was the old test, and it is what let
+the contract grow a vocabulary belonging to one plugin.
+
+Four things pass: **which project is open** (`projectDir`/`resourcesDir`), **the theme the user chose**,
+**the window a dialog is owned by**, and **the screen overlay** — an overlay goes over every window on the
+screen including the host's own, hides the editor that opened it, and comes back on the right thread. Nothing
+else does. A plugin can enumerate monitors, windows and emulator instances, grab pixels from any of them and
+read a launcher's installed-game library, because **`botmaker-shared` is published on JitPack and any plugin
+may depend on it** — so nothing shared can do is a privilege, and the SDK gets no advantage from being built
+in this repository. The files under `resourcesDir()` are ordinary files.
+
+**Six members were deleted on 2026-08-27 for failing this test**, all added weeks earlier because the SDK's
+editors wanted them: the whole `Assets` interface and `StudioServices.assets()` (the project's *named
+pictures* — that is `ImageTemplate`'s concept), and `Capture`'s `SourceChoice`, `Frame`, `Sample`,
+`chooseSource`, `defaultSource`, `grabTargetFrame` and `sampleFromTarget` (a *capture source*, and a sampled
+colour with its tolerance — `CaptureSource`'s and the vision API's). A third set never landed: `Launcher`,
+`GameChoice`, `EmulatorChoice` and two `Dialogs` methods over them, written and reverted the same day. Each
+was justified at the time as "the host owns the policy, the plugin owns what it is written down as" — the
+`SourceChoice` split — and the flaw in that reasoning is that **the host only owned the policy because
+Studio was written first**. A second plugin could not have added its own `Assets`, so the SDK was reaching
+through the contract for its own API. That is the back door this module exists to close.
+
+When a plugin's editor needs something the host has and the contract does not expose, the question to ask is
+*could any plugin have built this on shared plus its own files?* If yes, it builds it. If no, and only then,
+the contract grows — and it grows a **capability**, never a vocabulary: nothing here may name a concept that
+belongs to some plugin's API.
 
 ## The three rules that are easy to break
 
