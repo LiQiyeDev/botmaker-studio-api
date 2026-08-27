@@ -30,4 +30,27 @@ public interface StudioServices {
 
     /** Native file and directory choosers, and the window a plugin's own dialog should be owned by. */
     Dialogs dialogs();
+
+    /**
+     * The named pictures the project has saved, and the host's rules for adding one.
+     *
+     * <p>Added for the same reason as the other four: a real editor needed it. Picking one of a project's
+     * saved images is not a directory listing — naming, tagging and collision are host policy, and two
+     * plugins reimplementing them would disagree about one folder.
+     *
+     * <p>{@code default} like every other method a plugin may meet on an older host: a host that predates
+     * this service answers "no pictures" rather than {@code AbstractMethodError}. The empty implementation
+     * is honest — an editor that finds nothing to pick from shows nothing to pick from.
+     */
+    default Assets assets() {
+        return new Assets() {
+            @Override public java.util.List<Asset> all() { return java.util.List.of(); }
+            @Override public java.util.Optional<Asset> byName(String name) { return java.util.Optional.empty(); }
+            @Override public java.util.Map<String, java.util.List<String>> byTag() { return java.util.Map.of(); }
+            @Override public void saveNew(java.awt.image.BufferedImage image, String suggestedTag,
+                                          java.util.function.Consumer<Asset> onSaved) {}
+            @Override public void manage() {}
+            @Override public Runnable onChanged(Runnable listener) { return () -> {}; }
+        };
+    }
 }

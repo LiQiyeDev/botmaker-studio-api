@@ -5,6 +5,42 @@ reasoning.
 
 ## Done
 
+### 2026-08-27 — the host services grow to fit the editors (plugin platform, phase 12a)
+
+Phase 12 moves the SDK's thirteen slot editors out of Studio. Surveying them first found that **four cannot
+move without this module growing**, and that is the honest way to read every addition below: they are not a
+guess at what a plugin might want, they are what an editor already written could not do without.
+
+- **`Assets`**, on `StudioServices.assets()` — the project's named pictures. The `ImageTemplate` and
+  `ImageTemplateGroup` editors reached `ImageTemplateLibrary`, `ProjectConfig`, `ProjectSettingsService` and
+  `CoreApplicationEvents` for it. It is a service and not a directory listing because **naming one is policy
+  the host owns**: reserved names, sanitising, collisions, tags, and who is told when the set changes. Two
+  plugins walking `resourcesDir()` themselves would answer all of that differently about one folder.
+- **`Capture.pickPoint`** — one pixel under a magnifier. Deliberately not `selectRegion` with the size thrown
+  away: at 1:1 the cursor covers the pixel it is choosing.
+- **`Capture.Frame` + `grabTargetFrame`** — the AWT pixels and the label of the target they came from.
+  `grabFrame` hands over a JavaFX `Image`, which is right for *showing* a frame and useless for *searching*
+  one, and a frame with no label leaves the user guessing which monitor was read. Never a silent desktop
+  fallback: a frame of the wrong thing answers a question the editor did not ask.
+- **`Capture.Sample` + `sampleFromTarget`** — the eyedropper, carrying `spread`. That number can only be
+  measured at the moment of sampling (it is how much the chosen pixel's neighbourhood varies) and it is the
+  honest suggested tolerance — the justification a ΔE slider has never had.
+- **`Capture.SourceChoice` + `chooseSource` + `defaultSource`** — and this one is the design decision worth
+  keeping. **A capture source crosses as data, never as an expression.** The host enumerates monitors, windows
+  and emulator instances and paints the thumbnails; the plugin decides what a choice is *written down as*. The
+  alternative — the host handing back `CaptureSource.window("…")` — would bake one plugin's vocabulary into the
+  contract and make a second capture-source editor impossible.
+
+Two shape decisions inside that:
+
+- **`SourceChoice.Kind` is an enum component of a record, not a sealed hierarchy.** A new permitted subtype
+  breaks a plugin's `switch` at recompile; a new enum constant with a documented `default` arm does not. The
+  Javadoc says to read it with one.
+- **`assets()` is `default`; the new `Capture` methods are not.** The rule that every addition must be
+  `default` protects plugins from an older *host*, and `StudioServices` is what a plugin holds — so it gets the
+  default. `Capture` is host-implemented only; an abstract method there breaks a host at compile time, which is
+  a build failure in this repository rather than a user's plugin dying at runtime.
+
 ### 2026-08-27 — parameters become a plugin surface (plugin platform, phase 11)
 
 `ValueContext` is new, and it is the AST-free half of what an editor needs: `TypeRef type()`,
