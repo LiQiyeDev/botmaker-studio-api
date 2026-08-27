@@ -22,9 +22,12 @@ import java.util.List;
  *   <li><b>palette</b> — {@link #catalog(String)}: the types and members worth proposing, their groups and
  *       their order.</li>
  *   <li><b>slot editors</b> — {@link #slotEditors()}: "for a value of type X, show this UI instead of a
- *       text field".</li>
+ *       text field". They serve both places the host edits a value: a slot in a bot's Java, and a row in
+ *       the Parameters window.</li>
  *   <li><b>value types</b> — {@link #valueTypes()}: the types a project variable may hold, and what their
  *       stored text means.</li>
+ *   <li><b>parameters</b> — {@link #parameters(String)}: the sections of the Parameters window this plugin
+ *       owns, and the generated class each one's values become fields of.</li>
  *   <li><b>generation</b> — not declared here. A plugin that generates project files owns whole files keyed
  *       by their project-relative path, and contributes them through its own authoring entry point.</li>
  * </ul>
@@ -86,5 +89,24 @@ public interface StudioPlugin {
      */
     default ValueCatalog valueTypes() {
         return ValueCatalog.empty();
+    }
+
+    /**
+     * The sections this plugin owns in the Parameters window, at the version a project pins.
+     *
+     * <p>A plugin declares the <em>sections</em>; the user declares the values in them. Each group names a
+     * heading, a key the project file files a variable under, and the generated class those variables become
+     * fields of — see {@link ParameterGroup}. Returning nothing, the default, means this plugin has no
+     * parameters of its own, which is the ordinary case for a plugin that only contributes a palette.
+     *
+     * <p>The argument is read exactly as {@link #catalog(String)}'s is: the pinned version as the project's
+     * pom spells it, interpreted by the plugin alone. A plugin whose parameters class was introduced in a
+     * later version may answer nothing for an older pin, and the host will then show that project no section
+     * for it — which is the truth, since the jar the bot compiles against has no such class.
+     *
+     * @param pinnedVersion the version of this plugin the open project depends on; never {@code null}
+     */
+    default List<ParameterGroup> parameters(String pinnedVersion) {
+        return List.of();
     }
 }

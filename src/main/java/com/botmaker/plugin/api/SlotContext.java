@@ -8,8 +8,18 @@ package com.botmaker.plugin.api;
  * re-parse it, and a slot's current contents were already exposed as a {@code String}. So a plugin never
  * sees a syntax tree, the host's parser never becomes plugin surface, and this module depends on no parsing
  * library at all.
+ *
+ * <p><b>It is a {@link ValueContext} with a call site.</b> The supertype is the half that is true of every
+ * value the host edits — a type, the current value, a way to write it back — and this interface adds the
+ * half that only source code has. An editor written against {@link ValueContext} therefore works in the
+ * Parameters window <em>and</em> here; one written against this interface works only where there is Java to
+ * replace. Prefer the supertype unless the call site is genuinely what chooses the editor.
+ *
+ * <p>{@link #value()} and {@link #set} are inherited and are the same value {@link #currentSource()} spells:
+ * a one-element list holding the slot's Java expression. Writing through either is the same edit, and
+ * {@link #replaceWith} is the one that can also add imports.
  */
-public interface SlotContext {
+public interface SlotContext extends ValueContext {
 
     /**
      * The Java source currently in the slot — {@code "new Rect(12, 40, 300, 80)"}, {@code "\"gold.png\""},
@@ -19,9 +29,6 @@ public interface SlotContext {
      * is normal (the user may have typed anything) and must degrade to a default, never to an exception.
      */
     String currentSource();
-
-    /** The slot's declared type. */
-    TypeRef slotType();
 
     /**
      * The simple name of the type declaring the called method — {@code "Game"} — or {@code null} when the
@@ -54,6 +61,9 @@ public interface SlotContext {
      */
     void replaceWith(String javaExpression, String... importsNeeded);
 
-    /** The host services an editor may use: theming, screen capture, dialogs, and the project's location. */
-    StudioServices services();
+    /** Always {@code this}: a slot is its own call site. */
+    @Override
+    default SlotContext asSlot() {
+        return this;
+    }
 }

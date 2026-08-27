@@ -5,6 +5,28 @@ reasoning.
 
 ## Done
 
+### 2026-08-27 — parameters become a plugin surface (plugin platform, phase 11)
+
+`ValueContext` is new, and it is the AST-free half of what an editor needs: `TypeRef type()`,
+`List<String> value()`, `void set(List<String>)`, `StudioServices services()`. `SlotContext` **extends** it
+with the source-text half and its `slotType()` is gone — the inherited `type()` was the same question asked
+twice. `SlotEditor` widened from `SlotContext` to `ValueContext` in all three of `matches`, `create` and
+`of`, and that widening is the whole point: **one editor now serves both the code editor's argument slot and
+the Parameters window**, because both are "a value of a Java type", and a plugin writes the predicate once.
+`asSlot()` is how an editor that genuinely needs the call site asks for it — null when there is none.
+
+`ParameterGroup(id, title, className)` is new, and `StudioPlugin` gains
+`default List<ParameterGroup> parameters(String pinnedVersion)` — empty by default, so the contract's rule
+that every method but `id()` is `default` is intact. A group is **one plugin's section of the Parameters
+window and one generated file**, which is the whole-file-ownership rule applied to parameters: two plugins
+may both offer a `timeout` because they are fields of two classes. `DEFAULT_ID` is `""`, so a project
+written before groups existed reads back as the default plugin's — no migration, and the discriminator is
+absent rather than wrong.
+
+Nothing here carries a JSON annotation, and that is deliberate: the contract's one dependency is
+`javafx-controls` at `provided`, and a serialiser added here would be imposed on every plugin ever written.
+The contract declares the wire *form*; whoever owns the file supplies the parser (the SDK's `ValueJson`).
+
 ### 2026-08-27 — a value type says where a picker files it (plugin platform, phase 10b)
 
 `ValueType.group()` — a free `String`, `""` for the top level — and `Builder.group(…)`. Studio's picker used
