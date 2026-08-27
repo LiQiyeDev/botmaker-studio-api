@@ -12,30 +12,38 @@ one artifact (`javafx-controls`, `provided`).
 
 - `com.botmaker.plugin.api` — `StudioPlugin`, `SlotEditor`, `SlotContext`, `TypeRef`, `StudioServices` and
   the three services it exposes (`Theme`, `Capture`, `Dialogs`) plus `Region`.
-- `com.botmaker.plugin.api.catalog` — `PaletteCatalog`, `CatalogBuilder`, `Category`, `FacadeEntry`,
-  `MemberEntry`, `MemberId`, `MemberRef` and the arity shapes `M0`–`M5`.
+- `com.botmaker.plugin.api.catalog` — `PaletteCatalog`, `Category`, `FacadeEntry`, `MemberEntry`,
+  `MemberId`, and the package-private `SourceOrder`. The *result* types: `PaletteCatalog.of(Class<?>...)`
+  builds them by reflection. `CatalogBuilder`, `MemberRef` and the arity shapes `M0`–`M5` were deleted on
+  2026-08-27 — see *The catalog* below.
 - `com.botmaker.plugin.api.value` — the **value vocabulary**: `ValueType`, `ValueShape`, `ValueChoice`,
   `Visibility`, `Range`, `ValueCodec` and `ValueCatalog`. What a bot's *variable* can be, which is a question
   the contract answers so a plugin can own a type without the SDK granting it one.
-- `com.botmaker.plugin.api.palette` — `@Facade`, `@PaletteLabel`, `@PaletteDefault`: the marks a plugin puts
-  on its own classes so `botmaker-plugin-processor` can generate the catalog above. Their elements are plain
-  `String`s on purpose — an annotation element's type must be visible from the module *declaring* the
-  annotation, so a contract annotation can never take a plugin-defined enum constant, and the processor
-  validates the strings instead.
-- `com.botmaker.plugin.api.meta` — `@Internal`, and **the pointer vocabulary, which arrived from the SDK's
-  `api.meta` in 1.2.0**: `@ReplacedBy`, `@Replaces` and `@Since`. They are here because a plugin renaming its
-  own types wants exactly the machinery the SDK already had, and `botmaker-plugin-processor` checks them for
-  any plugin rather than for the SDK specifically. A pointer may name a target in **another module** — the
-  SDK's shims point here — and the `@version` on a `@Replaces` entry is then the **old** module's version,
-  the last release the old spelling existed in. **`@Internal` is a claim about versioning, not about menus**: not surface, freely breakable,
-  owed no `@Since` and no redirect. It targets packages too, so one `package-info.java` classifies a package.
-  `@Internal` and `@Facade` on one type is a compile error — offering a member inserts its name into a bot's
-  source, which is exactly what makes a type surface; `@Facade(role = "HIDDEN")` is how a type is recognised
-  without being proposed.
+- `com.botmaker.plugin.api.palette` — **`@Palette`**, **`@Hidden`**, `@PaletteLabel`, `@PaletteDefault`: the
+  marks a plugin puts on its own classes, read **at runtime by `PaletteCatalog.of`**. All four are
+  `RUNTIME` since 2026-08-27, because the plugin itself reflects on them. Their elements are plain `String`s
+  on purpose — an annotation element's type must be visible from the module *declaring* the annotation, so a
+  contract annotation can never take a plugin-defined enum constant.
 
-**These are annotations, not implementation**, so they do not breach the *interfaces and records* rule above
-— and the **processor that reads them deliberately lives elsewhere**, in `botmaker-plugin-processor`, which
-depends on nothing at all and matches these names as strings.
+  **Two bits, not three.** `@Palette` = **catalogued** (the recognition set: imports, "does `Point` mean this
+  plugin's or `java.awt`'s"). `@Hidden` on the type = **not offered** in an insert menu; on a member = that
+  member is not offered. `FacadeRole{MENU,HIDDEN,VALUE}` is deleted: nothing ever distinguished its second
+  state from its third, and `VALUE` existed only to work around `@Internal` welding *not-surface* to
+  *not-offered*. `@Facade` → `@Palette` (no `role`), `meta.@Internal` → `palette.@Hidden`.
+- `com.botmaker.plugin.api.meta` — **`@ReplacedBy` alone**, which arrived from the SDK's `api.meta` in 1.2.0
+  because a plugin renaming its own types wants exactly the machinery the SDK already had. A pointer may name
+  a target in **another module** — the SDK's shims point here. It is the one annotation still `CLASS`
+  retention, and for a reason: **Studio** reads it out of a jar it never loads, and `CLASS` keeps it out of
+  every running bot's reflection data.
+
+  **`@Replaces` and `@Since` were deleted on 2026-08-27.** The back edge existed because Studio holds only
+  two jars at upgrade, so a bot skipping a release could not see a pointer added on an element later deleted.
+  japicmp now enforces **never-delete** on `com.botmaker.sdk.api.**`, so the deprecated element and its
+  forward pointer are both still in the target jar and `@ReplacedBy` alone answers every upgrade, chains
+  included. `@Since` went by this repo's standing test for a gate: *the question must not already be answered
+  by bytecode*.
+
+**These are annotations, not implementation**, so they do not breach the *interfaces and records* rule above.
 
 Studio is the host; `botmaker-sdk` is the first plugin — a *privileged default* plugin, but a plugin, with
 no back door. That is what makes the contract honest: if the SDK needs something this module does not
@@ -86,33 +94,59 @@ module exists: a plugin wanting a `Channel` variable would need a constant added
   constructor descriptor, which is `NoSuchMethodError` in every already-compiled plugin. `ValueChoice` and
   `Range` *are* records and are therefore **frozen** — their components may not grow.
 
-## The catalog, and why it is method references
+## The catalog, and why it is reflection
 
-A catalog entry names a member with `Mouse::click`, never `"click"` and never `Mouse.class` plus a string.
-`MemberRef` extends `Serializable`, so javac gives each reference a synthetic `writeReplace()` returning a
-`SerializedLambda`; `MemberId.of` reflects that one method and reads the declaring class, the member name
-and the JVM descriptor. Two consequences, both load-bearing:
+`PaletteCatalog.of(Mouse.class, Keyboard.class, …)` — one class literal per facade, and **members are
+discovered, never named**. Every public declared method of a `@Palette` class is offered unless something on
+it says otherwise, grouped by name, lead shape chosen by `@PaletteDefault` or else fewest parameters, labels
+from `@PaletteLabel`, whole name dropped if any overload is `@Hidden`.
 
-- **A catalog that names a renamed or deleted member does not compile.** That is the property the deleted
-  `api-surface.txt` was trying to buy with a hand-maintained text file.
-- **Overloads resolve exactly.** `click(Point)` and `click(Rect)` differ in the descriptor.
+**It used to be method references** — `Mouse::click` through a `MemberRef extends Serializable` and a
+`SerializedLambda`, built by `CatalogBuilder` with one arity shape `M0`–`M5` per parameter count. All of that
+was deleted on 2026-08-27 along with `botmaker-plugin-processor`, and the property it was defended on does
+not need saving: *a catalog naming a renamed member does not compile* was answering a problem that only
+exists when something names members. Nothing does now. What stays javac-checked is the **class list**,
+because it is written as class literals.
 
-**Every shape returns `void`, and there is exactly one per arity.** A method reference to a value-returning
-method is compatible with a void-returning functional interface — the value is discarded — so adding a
-value-returning shape beside `M1` would make `add` ambiguous for most real members. With one shape per
-arity, `add` is overloaded on arity alone, which javac resolves even for an *inexact* (overloaded) method
-reference. Ambiguity within one arity is resolved by the caller with a type witness,
-`.<Point>add(Mouse::click)` — which doubles as the documentation of which overload was meant.
+The processor also cost something a plugin author outside this repository could not pay: a pom that omitted
+`<annotationProcessorPaths>` got no catalog, and nothing said why. Reflection needs no build configuration.
 
-**Do not add `M6`.** A public facade method taking six arguments is a design problem the catalog should
-surface rather than accommodate. If one genuinely needs offering, add the shape in the same release as the
-method so the two decisions are read together.
+**Three things about `of` that are decisions rather than details:**
 
-**What a catalog does not answer: presence.** Because entries must compile, the catalog for version 1.1
-cannot name a member deleted in 1.3 — so whether a member exists in the jar a bot actually pins stays with
-the host's ClassGraph scan of that jar, and the catalog answers only curation, order and labels. The two
-compose as an intersection, which fails in the safe direction: an old pin may be offered slightly less than
-it truly had, never more.
+- **It degrades, never throws.** Two `@PaletteDefault`s on one name, a `@PaletteLabel` on a `@Hidden` member,
+  two facades disagreeing about one category's label, a class with no `@Palette`, a facade whose members
+  cannot be read at all (`LinkageError` from an optional dependency the host did not resolve) — each is
+  collected into **`problems()`** and the rest of the catalog is built. The precedent is `ValueCatalog.merge`
+  and the rule behind both is the same: **no malformed catalog may be the reason a project will not open.**
+- **Member order is the class file's, not `getDeclaredMethods()`'s.** javac writes the `methods` table in
+  source order and reflection promises nothing, so `SourceOrder` parses the class file's constant pool and
+  methods table to recover the author's ordering — the one processor capability reflection alone lacks, and
+  the reason the switch reproduced the generated catalog's menus exactly. Every failure path returns an empty
+  list and the caller sorts alphabetically: the worst case is a cosmetic menu order.
+- **Constructors are not catalogued.** Reflecting them put an `<init>` entry under seven *offered* static
+  facades whose public constructor exists only because nobody wrote a private one, and a palette entry
+  inserts a call. `MemberId` keeps `of(Constructor)` and `CONSTRUCTOR` for a plugin that wants one.
+
+**What a catalog does not answer: presence.** It describes the build it was reflected from, not the jar the
+bot resolves — so whether a member exists in the jar a bot actually pins stays with the host's ClassGraph
+scan of that jar, and the catalog answers only curation, order and labels. The two compose as an
+intersection, which fails in the safe direction: an old pin may be offered slightly less than it truly had,
+never more.
+
+## japicmp, and why it is legitimate here
+
+`mvn verify` compares this build against `botmaker.japicmp.baseline` and **fails on any binary- or
+source-incompatible change**, with no ignore list and no exemption annotation. It catches the trap
+`../docs/refactor/25-compatibility.md` lists as checked by nothing: adding a component to a public record
+changes its canonical constructor descriptor and throws `NoSuchMethodError` in every already-compiled
+plugin — source-compatible, binary-incompatible, and until 2026-08-27 carried by a Javadoc sentence.
+
+The SDK's August japicmp gate was deleted because **CI cannot tell an intended break from an accident: it
+cannot see the version.** That is an objection to a *conditional* rule. Here the rule is unconditional —
+only a Studio major release may break a plugin, and that release edits this block — so there is nothing to
+distinguish and the objection does not apply. The module has never been released, so the baseline does not
+resolve yet and `ignoreMissingOldVersion` reports instead of failing; set the baseline to the previous tag in
+every release commit from the first one onward.
 
 ## Style
 
@@ -129,7 +163,8 @@ it truly had, never more.
 ## Building
 
 ```bash
-mvn test        # CatalogBuilderTest (13) + ValueVocabularyTest (8) — the module's only behaviour
+mvn test        # PaletteCatalogTest (10) + ValueVocabularyTest (8) — the module's only behaviour
+mvn verify      # the above plus japicmp against botmaker.japicmp.baseline (see above)
 mvn install     # com.github.LiQiyeDev:botmaker-studio-api:0.0.0-SNAPSHOT
 ```
 

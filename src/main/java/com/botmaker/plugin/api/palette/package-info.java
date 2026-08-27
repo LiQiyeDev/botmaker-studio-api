@@ -1,46 +1,50 @@
 /**
- * Curation written on the member it curates.
+ * Curation written on the thing it curates.
  *
- * <p>A {@link com.botmaker.plugin.api.catalog.PaletteCatalog} can be built entirely by hand — see
- * {@link com.botmaker.plugin.api.catalog.CatalogBuilder} — and for a small plugin that is the right shape.
- * It stops being the right shape at scale: the BotMaker SDK's own catalog was 620 lines of
- * {@code .<ImageTemplateGroup, CaptureSource, Double>add(ImageFinder::findCompare)}, where the type
- * witnesses exist only to pick an overload and read as noise, and where a member <em>added</em> to a facade
- * is invisible until somebody remembers to name it.
- *
- * <p>These annotations invert that. A facade declares itself with {@link
- * com.botmaker.plugin.api.palette.Facade}, every public method it declares is offered, and the exceptions
- * are written on the exceptions — with {@link com.botmaker.plugin.api.meta.Internal}, which lives in
- * {@code meta} rather than here because declining to offer a member is one consequence of the larger claim
- * it makes (<em>not versioned surface</em>) rather than the whole of it:
+ * <p>A plugin names its palette classes once, as class literals, and everything else is read off them:
  *
  * <pre>{@code
- * @Facade(category = "vision", categoryLabel = "Vision", icon = "🔍", order = 20)
+ * @Palette(category = "vision", categoryLabel = "Vision", icon = "🔍", order = 20)
  * public final class ImageFinder {
  *
  *     public static MatchResult find(ImageTemplate t) { … }        // offered
  *
- *     @Internal("the confidence override belongs in BotSettings")
+ *     @Hidden("the confidence override belongs in BotSettings")
  *     public static MatchResult find(ImageTemplate t, double c) { … }
  *
  *     @PaletteLabel("Find any of…")
  *     public static MatchResult findAny(ImageTemplate... t) { … }
  * }
+ *
+ * // elsewhere, in the plugin:
+ * PaletteCatalog.of(ImageFinder.class, ImageClicker.class, …);
  * }</pre>
  *
- * <p><b>Opt-out, not opt-in, and that is the whole point.</b> Under the old hand-written catalog a new public
- * method defaulted to <em>absent from the menus</em>, which is a silent outcome — the method exists, compiles
- * and is supported, and nobody notices it was never proposed. Here it defaults to offered, and declining it
- * is a deliberate line of source carrying a reason.
+ * <p><b>Opt-out, not opt-in, and that is the whole point.</b> Under a hand-written catalog a new public
+ * method defaults to <em>absent from the menus</em>, which is a silent outcome — the method exists, compiles
+ * and is supported, and nobody notices it was never proposed. Here it is offered the moment it is written,
+ * and declining it is a deliberate line of source carrying a reason.
  *
- * <h2>Retention, and why it differs between them</h2>
+ * <h2>Two bits per class, not three</h2>
  *
- * <p>{@link com.botmaker.plugin.api.palette.Facade} is read only by an annotation processor, which runs at
- * compile time, so it is {@code CLASS}-retained and never appears in reflection. The member annotations —
- * the two here and {@link com.botmaker.plugin.api.meta.Internal} — are {@code RUNTIME}-retained because {@link com.botmaker.plugin.api.catalog.CatalogBuilder#addAll()} reads
- * them off the real {@code Class<?>} — which is also what makes them impossible to get wrong: an annotation
- * cannot be attached to a method that does not exist, so curation cannot go stale the way a string in a
- * hand-written list can.
+ * <p>{@link com.botmaker.plugin.api.palette.Palette} means <b>catalogued</b>: recognised as a call into this
+ * plugin, filed under it, and available for the editor's "who owns this simple name" question.
+ * {@link com.botmaker.plugin.api.palette.Hidden} on the type means <b>not offered</b> — catalogued all the
+ * same, just never listed in the insert menus. A three-valued {@code role} element said this until
+ * 2026-08-27, and every consumer of it only ever read one bit.
+ *
+ * <h2>Runtime retention, and why all four are alike now</h2>
+ *
+ * <p>All four annotations here are {@code RUNTIME}-retained, because the plugin reflects its own classes to
+ * build the catalog. {@code @Palette} was {@code CLASS}-retained while an annotation processor read it at
+ * compile time and generated the catalog into the plugin's jar; the processor was deleted on 2026-08-27,
+ * along with the module it lived in.
+ *
+ * <p>It went because its one defended property does not need defending. A generated catalog <em>named</em>
+ * members, so javac refusing a name that no longer compiled was what kept it honest — but reflection
+ * <em>discovers</em> them, and an annotation cannot be attached to a method that does not exist. It also cost
+ * something real: a plugin whose pom forgot {@code <annotationProcessorPaths>} silently got no catalog at
+ * all, with nothing to tell its author why.
  *
  * <p>Runtime retention on classes a bot loads is safe. A bot does not depend on this module (the SDK's
  * dependency on it is {@code optional}, so it is never transitive), and the JVM parses annotations lazily and

@@ -5,6 +5,38 @@ reasoning.
 
 ## Done
 
+### 2026-08-27 — reflection replaces the processor, japicmp replaces the back edge
+
+The annotation set narrows to five and the catalog stops being generated.
+
+- **`@Facade` → `@Palette`** (the `role` element deleted) and **`meta.@Internal` → `palette.@Hidden`**,
+  narrowed back to what it actually did. `FacadeRole`, `CatalogBuilder`, `MemberRef` and `M0`–`M5` deleted;
+  `FacadeEntry.role` is a `boolean offered` and `isFacade()`/`inMenus()` are gone. **Two bits, not three:**
+  every consumer read one, and `VALUE` only ever existed to work around `@Internal` welding *not-surface* to
+  *not-offered*. All four palette annotations are `RUNTIME` now, because the plugin reflects on its own.
+- **`PaletteCatalog.of(Class<?>...)`** is the entry point. Members are discovered, so the property the
+  method-reference builder was defended on — *a catalog naming a renamed member does not compile* — answers
+  a problem that no longer exists; the class list stays javac-checked as class literals. It also removed a
+  cost only an outside plugin author would have paid: a pom omitting `<annotationProcessorPaths>` got no
+  catalog and no diagnostic.
+- **`SourceOrder`** (package-private, ~150 lines) parses the class file's constant pool and `methods` table
+  to recover declaration order — the one processor capability reflection lacks, and what let the switch
+  reproduce the SDK's generated menus exactly (52 facades, same order, every `.order(…)` prefix). Every
+  failure path returns an empty list and the caller sorts alphabetically.
+- **Load-time validation degrades rather than throws**, collected into `PaletteCatalog.problems()`: two
+  `@PaletteDefault`s on one name, a `@PaletteLabel` on a `@Hidden` member, two facades disagreeing about a
+  category label, a class with no `@Palette`, and a facade whose members cannot be read at all. That last one
+  was found by hitting it — `getDeclaredMethods()` throws `NoClassDefFoundError` when a signature names a
+  class the classloader lacks, and it is all-or-nothing, so the facade is reported and offered with no
+  members. Precedent: `ValueCatalog.merge`.
+- **Constructors are deliberately not catalogued** — reflecting them added an `<init>` entry to seven offered
+  static facades. `MemberId` keeps its constructor support.
+- **`@Replaces` and `@Since` deleted**; `@ReplacedBy` stays and stays `CLASS`-retention, since Studio reads it
+  from a jar it never loads. **japicmp on `verify`**, unconditional, no ignore list: the record-component trap
+  from `25-compatibility.md` is checked by something now. The August objection to japicmp — *CI cannot tell an
+  intended break from an accident because it cannot see the version* — is about a conditional rule; both new
+  uses are unconditional.
+
 ### 2026-08-27 — the host services grow to fit the editors (plugin platform, phase 12a)
 
 Phase 12 moves the SDK's thirteen slot editors out of Studio. Surveying them first found that **four cannot

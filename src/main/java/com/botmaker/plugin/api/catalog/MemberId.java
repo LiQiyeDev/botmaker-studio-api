@@ -1,6 +1,5 @@
 package com.botmaker.plugin.api.catalog;
 
-import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -8,15 +7,17 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * The identity of one member, recovered from the method reference that named it.
+ * The identity of one member: its declaring class, its name, and its JVM descriptor.
  *
- * <p>A {@link MemberRef} is {@code Serializable}, so javac gives its implementation class a synthetic
- * {@code writeReplace()} returning a {@link SerializedLambda}. Reflecting that one method yields the three
- * things an identity needs — the declaring class, the member name, and the JVM descriptor — with no parsing
- * of source and no string anywhere in the catalog's own text.
+ * <p>The descriptor is what makes an overload set tractable — {@code click(Point)} and {@code click(Rect)}
+ * differ in it — and it is the spelling every consumer of the catalog has used to tell one overload from
+ * another, via {@link #signature()}.
  *
- * <p>The descriptor is what makes an overload set tractable: {@code click(Point)} and {@code click(Rect)}
- * differ in it, so {@code Mouse::click} named twice with two type witnesses produces two distinct ids.
+ * <p>Until 2026-08-27 there was a second route in: a {@code MemberRef} method reference, read through its
+ * {@code SerializedLambda}, which let a catalog be written as {@code .add(Mouse::click)} and checked by
+ * javac. It went with the hand-written builder. A catalog is now built by reflecting the classes named in
+ * {@link PaletteCatalog#of(Class[])}, so members are discovered rather than named and there is nothing left
+ * for javac to check about them.
  *
  * <p><b>Constructors</b> report {@link #name()} as {@code <init>}; {@link #isConstructor()} says so.
  */
@@ -32,35 +33,10 @@ public record MemberId(Class<?> declaringClass, String name, String descriptor) 
     }
 
     /**
-     * Reads the identity out of a method reference.
+     * The identity of a method already in hand — the one route in, since a catalog is built by reflection.
      *
-     * @throws IllegalArgumentException if {@code ref} is not a method reference or lambda compiled against
-     *                                  one of the {@code M0..M5} shapes — a plain class implementing
-     *                                  {@link MemberRef} by hand has no {@code writeReplace()} and names
-     *                                  nothing
-     */
-    public static MemberId of(MemberRef ref) {
-        Objects.requireNonNull(ref, "ref");
-        SerializedLambda lambda = serialized(ref);
-        String owner = lambda.getImplClass().replace('/', '.');
-        Class<?> declaring;
-        try {
-            declaring = Class.forName(owner, false, ref.getClass().getClassLoader());
-        } catch (ClassNotFoundException e) {
-            // Practically unreachable: the reference only compiled because the class was on the classpath,
-            // and it is being read by the same loader. Reported rather than swallowed all the same.
-            throw new IllegalArgumentException("catalog names a member of a class that cannot be loaded: " + owner, e);
-        }
-        return new MemberId(declaring, lambda.getImplMethodName(), lambda.getImplMethodSignature());
-    }
-
-    /**
-     * The identity of a method already in hand — the route {@link CatalogBuilder#addAll()} takes, where there
-     * is no method reference because nobody wrote one.
-     *
-     * <p>The descriptor is computed rather than read, and it must come out byte-identical to the one javac
-     * puts in a {@link SerializedLambda}: the two routes into this record meet in
-     * {@link PaletteCatalog#mergedWith}, in a Studio menu lookup and in every equality test below, and an id
+     * <p>The descriptor is computed rather than read, and it is the JVM's own spelling: ids meet each other
+     * in {@link PaletteCatalog#mergedWith}, in a Studio menu lookup and in every equality test, and an id
      * that differs only in how it was built is an entry that silently matches nothing.
      */
     public static MemberId of(Method method) {
@@ -104,24 +80,6 @@ public record MemberId(Class<?> declaringClass, String name, String descriptor) 
             case "double" -> 'D';
             default -> 'V';
         });
-    }
-
-    private static SerializedLambda serialized(MemberRef ref) {
-        try {
-            Method writeReplace = ref.getClass().getDeclaredMethod("writeReplace");
-            writeReplace.setAccessible(true);
-            Object replacement = writeReplace.invoke(ref);
-            if (replacement instanceof SerializedLambda lambda) {
-                return lambda;
-            }
-            throw new IllegalArgumentException("not a method reference: writeReplace returned " + replacement);
-        } catch (NoSuchMethodException e) {
-            throw new IllegalArgumentException(
-                    "a catalog entry must be a method reference (Mouse::click), not a hand-written "
-                            + MemberRef.class.getSimpleName() + " implementation: " + ref.getClass().getName(), e);
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalArgumentException("could not read the method reference " + ref.getClass().getName(), e);
-        }
     }
 
     public boolean isConstructor() {

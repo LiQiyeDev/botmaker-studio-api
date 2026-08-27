@@ -16,29 +16,36 @@ import java.lang.annotation.Target;
  * that one became the other. Read as a removal, a rename turns into hundreds of calls replaced by default
  * values — the single worst thing an upgrade can do to someone's project.
  *
- * <p>This annotation is the forward half of the answer, and it is read out of the <b>bot's own (older)</b>
- * jar: the bot still spells the member the old way, so the old jar is where the pointer to the new spelling
- * has to be. The backward half is {@link Replaces}, read out of the newer jar. Either one alone resolves a
- * single hop; the two <b>compose</b>, which is what lets a bot that skipped several releases follow a chain
- * of renames without any intermediate jar ever being fetched.
+ * <p>It is read out of whichever jar still carries the old spelling, and it is the <b>only</b> half there is:
  *
  * <pre>{@code
- * // 1.2.0 — the window in which both spellings exist
+ * // 1.2.0 — and every release after it, because the old spelling never goes away
  * @Deprecated(since = "1.2.0", forRemoval = true)
  * @ReplacedBy("com.botmaker.sdk.api.vision.IClicker#tap")
  * public boolean click(ImageTemplate t) { return tap(t); }
  *
- * @Replaces("com.botmaker.sdk.api.vision.ImageClicker#click@1.2.0")
  * public boolean tap(ImageTemplate t) { … }
  * }</pre>
+ *
+ * <h2>Why there is no back edge, and what pays for that</h2>
+ *
+ * <p>There was one until 2026-08-27 — {@code @Replaces}, written on the survivor, naming what it took over.
+ * It existed because Studio holds only two jars at an upgrade, the bot's pin and the target, so a bot jumping
+ * 1.0 → 3.0 could not see a pointer added in 2.0 on an element deleted in 3.0: neither jar has it.
+ *
+ * <p>That gap closes the moment a deprecated element is <b>never deleted</b>. The target jar then still
+ * carries the old member and its forward pointer, so one end answers every upgrade, chained renames
+ * included — {@code a → b} in 2.0 and {@code b → c} in 3.0 land a bot still spelling it {@code a} on
+ * {@code c}, with no intermediate jar fetched. The premise is enforced rather than trusted: japicmp refuses
+ * a removal from the SDK's {@code com.botmaker.sdk.api.**}, and the accepted price is that the package only
+ * ever grows.
  *
  * <h2>The grammar</h2>
  *
  * <p>A target is {@code fqn} for a type, {@code fqn#member} for a method or field, {@code fqn#<init>} for a
  * constructor. An enum constant <em>is</em> a static field, so {@code …interaction.Key#ENTER} names one.
  * There is <b>no arity</b> in the string: the annotation sits on one specific overload, so the parameter
- * count of both ends is already known from the bytecode. ({@link Replaces} <em>does</em> admit an optional
- * arity, because by the time it is read the overload it took over may no longer exist to be counted.)
+ * count of both ends is already known from the bytecode.
  *
  * <p>The target need not live in the same module as the element pointing at it. A type moving from a plugin
  * into this contract is an ordinary rename with an unusually long fully-qualified name, and the vocabulary's
@@ -80,7 +87,6 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.CLASS)
 @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR})
-@Replaces("com.botmaker.sdk.api.meta.ReplacedBy@1.2.0")
 public @interface ReplacedBy {
 
     /**

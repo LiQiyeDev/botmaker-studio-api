@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  *
  * <p>A palette entry is a member <em>name</em>. Picking it inserts one shape — the lead — and the name's
  * other shapes sit behind a submenu, so all of them stay one gesture away. That is why an overload is never
- * hidden: hiding is a verdict about a name ({@link com.botmaker.plugin.api.meta.Internal}), and choosing
+ * hidden: hiding is a verdict about a name ({@link Hidden}), and choosing
  * between shapes of one name
  * is this.
  *
@@ -33,14 +33,13 @@ import java.lang.annotation.Target;
  * than computed. What <em>is</em> computed is everything else: the submenu is every other overload, in
  * parameter-count order, and it needs no declaration at all.
  *
- * <p>Retention is {@code RUNTIME} for the same reason as {@link com.botmaker.plugin.api.meta.Internal} — a
- * catalog built by
- * {@link com.botmaker.plugin.api.catalog.CatalogBuilder#addAll()} reads it off the live {@code Class}, with
- * no method reference to carry it. It is safe on a class a bot loads: the plugin-contract dependency is
- * {@code optional} and never transitive, so this annotation's type is simply absent from a bot's classpath,
- * and the JVM omits an annotation whose type it cannot resolve rather than failing.
+ * <p>Retention is {@code RUNTIME} for the same reason as {@link Hidden} —
+ * {@link com.botmaker.plugin.api.catalog.PaletteCatalog#of(Class[])} reads it off the live {@code Class}. It
+ * is safe on a class a bot loads: the plugin-contract dependency is {@code optional} and never transitive,
+ * so this annotation's type is simply absent from a bot's classpath, and the JVM omits an annotation whose
+ * type it cannot resolve rather than failing.
  *
- * @see com.botmaker.plugin.api.meta.Internal
+ * @see Hidden
  * @see PaletteLabel
  */
 @Documented

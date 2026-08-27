@@ -15,9 +15,9 @@ import java.lang.annotation.Target;
  * label, because they share a submenu. Annotating two overloads of one name with different labels is an
  * error the processor reports.
  *
- * <p>A label on a member that is not offered — {@link com.botmaker.plugin.api.meta.Internal}, or not
- * public — is also an error,
- * rather than being silently ignored: it means the author believed a menu entry existed that does not.
+ * <p>A label on a member that is not offered — {@link Hidden}, or not public — is reported in
+ * {@link com.botmaker.plugin.api.catalog.PaletteCatalog#problems()} rather than silently ignored: it means
+ * the author believed a menu entry existed that does not.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

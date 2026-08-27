@@ -5,33 +5,35 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * One type a plugin offers, its category, and the members of it worth proposing — in the order the plugin
+ * One type a plugin catalogues, its category, and the members of it worth proposing — in the order the plugin
  * declared them, which is the order the menu shows.
  *
- * <p>The type is a real {@link Class} rather than a name, and that is load-bearing in two places. It is what
- * makes the catalog fail the build when a facade is renamed, and it is what lets the editor answer "does the
- * SDK own this simple name?" — the deduction that decides whether {@code Point} in a bot's source means the
- * SDK's or {@code java.awt}'s — without a hand-mirrored list of fully-qualified names.
+ * <p>The type is a real {@link Class} rather than a name, and that is load-bearing: it is what lets the editor
+ * answer "does this plugin own this simple name?" — the deduction that decides whether {@code Point} in a
+ * bot's source means the SDK's or {@code java.awt}'s — without a hand-mirrored list of fully-qualified names.
  *
  * <p><b>Present means curated.</b> A type in the catalog offers exactly the members it lists and nothing
- * else; a type absent from the catalog is not offered at all. An entry with an empty member list is
+ * else; a type absent from the catalog is not catalogued at all. An entry with an empty member list is
  * therefore a verdict rather than an omission — it is how an enum whose constants are the whole point, or a
  * type reached only as a variable, is catalogued for its identity without proposing any of its methods.
  *
- * @param type     the facade class
+ * <p><b>Catalogued and offered are two bits, not one.</b> Every entry here is catalogued; {@link #offered()}
+ * says whether the insert menus also list it. Until 2026-08-27 this was a three-valued {@code FacadeRole}
+ * whose third state ({@code VALUE}) nothing anywhere distinguished from its second.
+ *
+ * @param type     the class
  * @param category the group it is filed under
- * @param role     how far into the editor it reaches
+ * @param offered  whether the insert menus list it, or whether it is only recognised
  * @param icon     a menu glyph, or {@code null} for the editor's own fallback
  * @param label    what to show, or {@code null} for the class's simple name
  * @param members  the offered members, in declaration order
  */
-public record FacadeEntry(Class<?> type, Category category, FacadeRole role, String icon, String label,
+public record FacadeEntry(Class<?> type, Category category, boolean offered, String icon, String label,
                           List<MemberEntry> members) {
 
     public FacadeEntry {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(category, "category");
-        Objects.requireNonNull(role, "role");
         members = List.copyOf(members);
     }
 
@@ -41,16 +43,6 @@ public record FacadeEntry(Class<?> type, Category category, FacadeRole role, Str
 
     public String qualifiedName() {
         return type.getName();
-    }
-
-    /** True for {@link FacadeRole#MENU} and {@link FacadeRole#HIDDEN} — the recognition set. */
-    public boolean isFacade() {
-        return role != FacadeRole.VALUE;
-    }
-
-    /** True for {@link FacadeRole#MENU} alone — the set the insert menus show. */
-    public boolean inMenus() {
-        return role == FacadeRole.MENU;
     }
 
     /** The label if one was given, the class's simple name otherwise. Never {@code null}. */
