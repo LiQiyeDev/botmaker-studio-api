@@ -44,6 +44,7 @@ public final class ValueType {
 
     private final String id;
     private final String label;
+    private final String group;
     private final String sourceName;
     private final String boxedName;
     private final boolean primitive;
@@ -56,6 +57,7 @@ public final class ValueType {
     private ValueType(Builder b, boolean known) {
         this.id = b.id;
         this.label = b.label == null ? b.id : b.label;
+        this.group = b.group == null ? "" : b.group;
         this.sourceName = b.sourceName;
         this.boxedName = b.boxedName == null ? b.sourceName : b.boxedName;
         this.primitive = b.primitive;
@@ -91,6 +93,19 @@ public final class ValueType {
     /** What a menu calls this. Free to change; nothing is stored from it. */
     public String label() {
         return label;
+    }
+
+    /**
+     * The heading a type picker files this under — {@code "Vision"}, {@code "Geometry"} — or {@code ""} for
+     * one that sits at the top level.
+     *
+     * <p>A free {@code String} and not an enum, for the reason the whole class is not one: a second plugin's
+     * types have to be groupable without a constant being granted to it here. Types carrying the same group
+     * are shown together, in the order they were registered, and the <em>first</em> registration of a group
+     * decides where that group sits — so a plugin cannot reorder another's menu by naming its heading.
+     */
+    public String group() {
+        return group;
     }
 
     /** How a generator writes this type in source: {@code int}, {@code Key}, {@code java.time.Duration}. */
@@ -182,6 +197,7 @@ public final class ValueType {
 
         private final String id;
         private String label;
+        private String group;
         private String sourceName;
         private String boxedName;
         private boolean primitive;
@@ -198,6 +214,12 @@ public final class ValueType {
         /** What a menu calls this. Defaults to the id. */
         public Builder label(String label) {
             this.label = label;
+            return this;
+        }
+
+        /** The picker heading this type is filed under. Defaults to none, which means the top level. */
+        public Builder group(String group) {
+            this.group = group;
             return this;
         }
 

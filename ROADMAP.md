@@ -5,6 +5,18 @@ reasoning.
 
 ## Done
 
+### 2026-08-27 — a value type says where a picker files it (plugin platform, phase 10b)
+
+`ValueType.group()` — a free `String`, `""` for the top level — and `Builder.group(…)`. Studio's picker used
+to read the grouping off `BotType.Group`, an enum in Studio, which is exactly the constant a second plugin
+could never be granted: a plugin's own types would have arrived in a menu with nowhere to sit. A free string
+for the same reason the class is not an enum.
+
+The ordering rule is worth stating because it is the one a second plugin could otherwise use to disturb the
+first: types carrying the same group are shown together in **registration** order, and the **first**
+registration of a group decides where that group sits. A plugin cannot reorder another's menu by naming its
+heading.
+
 ### 2026-08-27 — the compatibility vocabulary arrives (plugin platform, phase 8c.4)
 
 `@ReplacedBy`, `@Replaces` and `@Since` are `com.botmaker.plugin.api.meta` now, beside `@Internal`. They were
