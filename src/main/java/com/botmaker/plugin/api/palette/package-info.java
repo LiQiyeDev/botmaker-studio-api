@@ -8,9 +8,11 @@
  * witnesses exist only to pick an overload and read as noise, and where a member <em>added</em> to a facade
  * is invisible until somebody remembers to name it.
  *
- * <p>These three annotations invert that. A facade declares itself with {@link
+ * <p>These annotations invert that. A facade declares itself with {@link
  * com.botmaker.plugin.api.palette.Facade}, every public method it declares is offered, and the exceptions
- * are written on the exceptions:
+ * are written on the exceptions — with {@link com.botmaker.plugin.api.meta.Internal}, which lives in
+ * {@code meta} rather than here because declining to offer a member is one consequence of the larger claim
+ * it makes (<em>not versioned surface</em>) rather than the whole of it:
  *
  * <pre>{@code
  * @Facade(category = "vision", categoryLabel = "Vision", icon = "🔍", order = 20)
@@ -18,7 +20,7 @@
  *
  *     public static MatchResult find(ImageTemplate t) { … }        // offered
  *
- *     @NotInPalette("the confidence override belongs in BotSettings")
+ *     @Internal("the confidence override belongs in BotSettings")
  *     public static MatchResult find(ImageTemplate t, double c) { … }
  *
  *     @PaletteLabel("Find any of…")
@@ -34,8 +36,8 @@
  * <h2>Retention, and why it differs between them</h2>
  *
  * <p>{@link com.botmaker.plugin.api.palette.Facade} is read only by an annotation processor, which runs at
- * compile time, so it is {@code CLASS}-retained and never appears in reflection. The two member annotations
- * are {@code RUNTIME}-retained because {@link com.botmaker.plugin.api.catalog.CatalogBuilder#addAll()} reads
+ * compile time, so it is {@code CLASS}-retained and never appears in reflection. The member annotations —
+ * the two here and {@link com.botmaker.plugin.api.meta.Internal} — are {@code RUNTIME}-retained because {@link com.botmaker.plugin.api.catalog.CatalogBuilder#addAll()} reads
  * them off the real {@code Class<?>} — which is also what makes them impossible to get wrong: an annotation
  * cannot be attached to a method that does not exist, so curation cannot go stale the way a string in a
  * hand-written list can.

@@ -8,7 +8,10 @@ import java.lang.annotation.Target;
 
 /**
  * Declares a class as a palette facade: the plugin's catalog offers every public method it declares, except
- * the ones marked {@link NotInPalette}.
+ * the ones marked {@link com.botmaker.plugin.api.meta.Internal}.
+ *
+ * <p>It is also half of the classification every class under a plugin's declared surface roots must carry:
+ * {@code @Facade} or {@code @Internal}, never both, never neither.
  *
  * <p>Read by an annotation processor at compile time, not at runtime — see the
  * {@linkplain com.botmaker.plugin.api.palette package documentation} for why the retention differs from the

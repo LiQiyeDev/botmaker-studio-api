@@ -17,6 +17,21 @@ one artifact (`javafx-controls`, `provided`).
 - `com.botmaker.plugin.api.value` — the **value vocabulary**: `ValueType`, `ValueShape`, `ValueChoice`,
   `Visibility`, `Range`, `ValueCodec` and `ValueCatalog`. What a bot's *variable* can be, which is a question
   the contract answers so a plugin can own a type without the SDK granting it one.
+- `com.botmaker.plugin.api.palette` — `@Facade`, `@PaletteLabel`, `@PaletteDefault`: the marks a plugin puts
+  on its own classes so `botmaker-plugin-processor` can generate the catalog above. Their elements are plain
+  `String`s on purpose — an annotation element's type must be visible from the module *declaring* the
+  annotation, so a contract annotation can never take a plugin-defined enum constant, and the processor
+  validates the strings instead.
+- `com.botmaker.plugin.api.meta` — `@Internal`, and (from the SDK's `api.meta`, on its way here) the pointer
+  vocabulary. **`@Internal` is a claim about versioning, not about menus**: not surface, freely breakable,
+  owed no `@Since` and no redirect. It targets packages too, so one `package-info.java` classifies a package.
+  `@Internal` and `@Facade` on one type is a compile error — offering a member inserts its name into a bot's
+  source, which is exactly what makes a type surface; `@Facade(role = "HIDDEN")` is how a type is recognised
+  without being proposed.
+
+**These are annotations, not implementation**, so they do not breach the *interfaces and records* rule above
+— and the **processor that reads them deliberately lives elsewhere**, in `botmaker-plugin-processor`, which
+depends on nothing at all and matches these names as strings.
 
 Studio is the host; `botmaker-sdk` is the first plugin — a *privileged default* plugin, but a plugin, with
 no back door. That is what makes the contract honest: if the SDK needs something this module does not

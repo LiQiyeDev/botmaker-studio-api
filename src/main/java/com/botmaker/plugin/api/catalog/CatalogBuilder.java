@@ -1,6 +1,6 @@
 package com.botmaker.plugin.api.catalog;
 
-import com.botmaker.plugin.api.palette.NotInPalette;
+import com.botmaker.plugin.api.meta.Internal;
 import com.botmaker.plugin.api.palette.PaletteDefault;
 import com.botmaker.plugin.api.palette.PaletteLabel;
 
@@ -43,7 +43,7 @@ import java.util.Objects;
  *
  * <p>{@link #addAll()} is the <b>opt-out</b> form, and is what a plugin cataloguing its own classes should
  * reach for: every public method the facade declares is offered, and the exceptions are written on the
- * exceptions with {@link com.botmaker.plugin.api.palette.NotInPalette}. The two compose freely — {@code add}
+ * exceptions with {@link com.botmaker.plugin.api.meta.Internal}. The two compose freely — {@code add}
  * before or after {@code addAll} — and the annotations are read by
  * {@link com.botmaker.plugin.api.palette.Facade an annotation processor} that emits exactly the calls below.
  *
@@ -212,7 +212,7 @@ public final class CatalogBuilder {
      * Naming members one at a time means a method <em>added</em> to a facade is absent from the menus until
      * somebody remembers to name it — a silent outcome, since the method exists and compiles and nobody is
      * told it was never proposed. Here it is offered the moment it is written, and declining it is a
-     * deliberate {@link com.botmaker.plugin.api.palette.NotInPalette} on the method itself.
+     * deliberate {@link com.botmaker.plugin.api.meta.Internal} on the method itself.
      *
      * <p><b>Overloads are grouped, never dropped.</b> The unit of curation is the member <em>name</em>: every
      * overload of an offered name is offered, adjacent, with the lead shape first and the rest in
@@ -220,7 +220,7 @@ public final class CatalogBuilder {
      * inserts and {@link FacadeEntry#overloads(String)} the submenu, and neither needed a new record
      * component to say so — the lead is simply the first entry for its name. The lead is the narrowest shape
      * unless a {@link com.botmaker.plugin.api.palette.PaletteDefault} names another, and a
-     * {@link com.botmaker.plugin.api.palette.NotInPalette} on any one overload drops the whole name.
+     * {@link com.botmaker.plugin.api.meta.Internal} on any one overload drops the whole name.
      *
      * <p><b>What it never offers, with no annotation needed:</b> {@code toString()}, {@code equals(Object)}
      * and {@code hashCode()}; an enum's synthetic {@code values()} and {@code valueOf(String)}; synthetic and
@@ -251,7 +251,7 @@ public final class CatalogBuilder {
         names.sort(Comparator.naturalOrder());
         for (String name : names) {
             List<Method> overloads = byName.get(name);
-            if (overloads.stream().anyMatch(m -> m.isAnnotationPresent(NotInPalette.class))) {
+            if (overloads.stream().anyMatch(m -> m.isAnnotationPresent(Internal.class))) {
                 continue;
             }
             // The lead first, then the rest narrowest-first. An author's PaletteDefault is the only thing
@@ -288,7 +288,7 @@ public final class CatalogBuilder {
 
     /**
      * Whether {@link #addAll()} considers this method at all — see its documentation for each clause. This is
-     * per-method and structural; the editorial verdict ({@code NotInPalette}) is taken per <em>name</em>, in
+     * per-method and structural; the editorial verdict ({@code @Internal}) is taken per <em>name</em>, in
      * {@code addAll} itself.
      */
     private static boolean eligible(Class<?> facade, Method method) {

@@ -32,5 +32,18 @@ is allowed to make. Additions arrive as `default` methods.
 - **Present means curated.** A type in a catalog offers exactly the members it lists; a type absent from it is
   not offered. An entry with an empty member list is a verdict, not an omission — how an enum whose constants
   are the whole point is catalogued for its identity without proposing any method.
+- **The palette annotations, in `com.botmaker.plugin.api.palette`:** `@Facade` on the type, and
+  `@PaletteLabel` / `@PaletteDefault` on the exceptions. Curation is **opt-out** — `CatalogBuilder.addAll()`
+  offers every public declared member — and its unit is the member **name**, not the overload: one menu entry
+  per name, a lead shape plus a submenu. Their elements are plain `String`s, validated by the processor,
+  because an annotation element's type must be visible from the module declaring it — so a contract
+  annotation can never take a plugin-defined enum constant.
+- **`com.botmaker.plugin.api.meta.@Internal`**, which replaced `@NotInPalette` and says the stronger thing.
+  `@NotInPalette` meant only *the menus should not suggest this*; `@Internal` means **not versioned
+  surface** — freely breakable, owed no `@Since`, owed no pointer on removal, and never offered. It targets
+  types, methods, constructors and **packages**, so a `package-info.java` classifies a whole package at once.
+  A type that is both `@Internal` and `@Facade` is a compile error, because offering a member inserts its
+  name into a bot's source, which is what makes a type surface. To be recognised without being proposed, use
+  `@Facade(role = "HIDDEN")`.
 - One dependency, `javafx-controls`, at `provided` scope — a slot editor returns a `javafx.scene.Node`.
   Nothing else, and no parsing library: a plugin writes back Java source as text.
