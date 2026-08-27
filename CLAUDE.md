@@ -79,6 +79,16 @@ When a plugin's editor needs something the host has and the contract does not ex
 the contract grows — and it grows a **capability**, never a vocabulary: nothing here may name a concept that
 belongs to some plugin's API.
 
+**One member has passed that test since, and it is the worked example of what a capability looks like.**
+Phase 12c (2026-08-28) added `SlotContext.enclosingSource()` and `replaceEnclosingCall(String, String...)`,
+because a duration editor cannot otherwise offer "wait a random amount": the SDK's humanized wait is
+`Wait.between(min, max)` where the fixed one is `Wait.time(x)`, so ticking that box is a change to the
+**call**, not to the value in the slot. It passes on both halves of the rule — the bot's syntax tree is
+something only the host has, and the signature takes and returns Java source text exactly as `replaceWith`
+does, naming no type of anyone's. Compare it with `Capture.SourceChoice`, which also arrived because a real
+editor needed it and which named `CaptureSource`'s concept: *a real editor needed it* is not the test, and
+never was.
+
 ## The three rules that are easy to break
 
 **1. Every method but `StudioPlugin.id()` is `default`, and stays that way.** A bot's source can be

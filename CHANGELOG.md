@@ -17,22 +17,20 @@ is allowed to make. Additions arrive as `default` methods.
 
 ## [Unreleased]
 
-- **`Assets` — the project's named pictures**, on `StudioServices.assets()`. An editor that lets the user pick
-  one of the images a project has saved needs the host's rules for the set, not a directory listing: which
-  names are reserved, how one is sanitised, what tags exist, who is told when it changes. A `default` method,
-  so a plugin meeting an older host is told there are no pictures rather than dying with
-  `AbstractMethodError`. An asset crosses as a **name and a file**, never as an expression — what a plugin
-  writes into a bot's source is its own vocabulary.
-- **`Capture` grows what the interesting editors actually need**: `pickPoint` (one pixel under a magnifier —
-  not `selectRegion` with the size discarded, because at 1:1 the cursor covers what it is choosing);
-  `Frame`/`grabTargetFrame` (AWT pixels plus the label of the target they came from, so an editor can *search*
-  a frame and say where it came from); `Sample`/`sampleFromTarget` (the eyedropper, carrying the measured
-  spread of the pixel's neighbourhood — the honest suggested tolerance, and the number a tolerance slider has
-  never had any way to justify); and `SourceChoice`/`chooseSource`/`defaultSource`.
-- **A capture source crosses as data, not as an expression.** The host owns the chooser — it enumerates
-  monitors, windows and emulator instances and paints the live thumbnails — and the plugin owns the vocabulary
-  a choice is written down in. That is the only split under which two plugins can both offer a capture-source
-  editor. Read `SourceChoice.kind()` with a `default` arm: the enum may gain a constant.
+- **`StudioServices` is deliberately five members, and the test is strict**: a service belongs there only when
+  **the host is the only possible source of it** — which project is open, the theme, the window a dialog is
+  owned by, and the screen overlay (`Capture`: `selectRegion`, `pickPoint`, `sampleColor`, `grabFrame`).
+  Everything else a plugin does for itself, because `botmaker-shared` is published and any plugin may depend
+  on it: enumerating monitors, windows and emulator instances, grabbing their pixels, reading an installed
+  library. An `Assets` service and a `Capture.SourceChoice`/`Frame`/`Sample` family were built during
+  development and **deleted before this release**; they named one plugin's concepts (a *named picture*, a
+  *capture source*) in the contract's own package, which no second plugin could have done. The contract grows
+  **capabilities, never vocabularies**.
+- **`SlotContext.enclosingSource()` and `replaceEnclosingCall(String, String...)`** — an editor may rewrite the
+  whole call its slot sits in, not only the slot. For the case where the choice is a **shape** rather than a
+  value: "wait somewhere between 800ms and 2s" is not a different duration from "2s", it is a two-argument
+  call where there was a one-argument one. Source text in, source text out, exactly like `replaceWith`; both
+  `default`, so an older host leaves the source alone rather than throwing.
 - **First cut of the plugin contract.** `StudioPlugin`, `SlotEditor`, `SlotContext`, `TypeRef`,
   `StudioServices` (`Theme`, `Capture`, `Dialogs`, `Region`), and the palette vocabulary under
   `com.botmaker.plugin.api.catalog` (`PaletteCatalog`, `CatalogBuilder`, `Category`, `FacadeEntry`,

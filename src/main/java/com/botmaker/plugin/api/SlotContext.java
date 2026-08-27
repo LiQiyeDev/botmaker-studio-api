@@ -46,6 +46,18 @@ public interface SlotContext extends ValueContext {
     int argIndex();
 
     /**
+     * The Java source of the whole call this slot is an argument of — {@code "Wait.time(Duration.ofSeconds(2))"}
+     * — or {@code null} when the slot is not an argument of one.
+     *
+     * <p>The companion to {@link #replaceEnclosingCall}: an editor that may rewrite the call has to read the
+     * <em>other</em> arguments first, since it is about to replace them. Parsing it is the editor's own job
+     * and failing to is normal, exactly as for {@link #currentSource()}.
+     */
+    default String enclosingSource() {
+        return null;
+    }
+
+    /**
      * Replaces the slot's contents with a Java expression, adding any imports it needs.
      *
      * <p>The expression is source text the host re-parses; write it as a user would type it. Name the
@@ -60,6 +72,31 @@ public interface SlotContext extends ValueContext {
      * @param importsNeeded  fully-qualified type names the expression refers to by simple name
      */
     void replaceWith(String javaExpression, String... importsNeeded);
+
+    /**
+     * Replaces the <em>whole call</em> this slot is an argument of, rather than the slot.
+     *
+     * <p>For the case where the choice being edited is not a value but a <b>shape</b>: a wait of "somewhere
+     * between 800ms and 2s" is not a different duration from a wait of "2s", it is
+     * {@code Wait.between(a, b)} where there was {@code Wait.time(x)}. An editor that could only write inside
+     * its own slot would have to express that by nesting something in the argument, which is not what the
+     * author would have typed.
+     *
+     * <p>Same rules as {@link #replaceWith}: source text the host re-parses, fully-qualified names are always
+     * safe, on the JavaFX application thread, and repeatable. Does nothing when
+     * {@link #enclosingSource()} is {@code null} — so an editor may call it without first checking, and gets
+     * the honest outcome (the source is left alone) rather than an exception.
+     *
+     * <p><b>It is a capability, not a vocabulary</b>, which is the test on {@link StudioServices}: the bot's
+     * syntax tree is something only the host has, and nothing in the signature names a concept belonging to
+     * any one plugin. {@code default} for the reason every method here but {@code id()} is — an older host
+     * ignores the call instead of throwing {@code AbstractMethodError}.
+     *
+     * @param javaExpression a Java expression replacing the whole call, never a statement and never blank
+     * @param importsNeeded  fully-qualified type names the expression refers to by simple name
+     */
+    default void replaceEnclosingCall(String javaExpression, String... importsNeeded) {
+    }
 
     /** Always {@code this}: a slot is its own call site. */
     @Override
