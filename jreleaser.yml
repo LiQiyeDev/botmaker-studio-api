@@ -1,0 +1,78 @@
+# JReleaser — what ONE release of this repository looks like.
+#
+# The split with the umbrella's release.sh is the whole design, and it is worth stating here because this
+# file reads like it could own more than it does:
+#
+#   * release.sh knows the CONSTELLATION — which of the eight repositories changed, what each one's next
+#     version is, the order the tags go out in, and which upstream ref each downstream pins. Nothing in
+#     JReleaser can express that: its unit of work is one repository, one version, one release.
+#   * this file knows what a release IS — the tag, the GitHub Release, and the notes on it.
+#
+# Nothing here knows another module exists, and that is deliberate.
+#
+# WHERE THIS RUNS: this repository's own CI, on a version tag, and nowhere else —
+# .github/workflows/ci.yml, the `release` job, through jreleaser/release-action.
+#
+# NOT from the umbrella working copy, and that is measured rather than preferred. Two findings from
+# 2026-08-28, both worth keeping because both look like configuration mistakes until you hit them:
+#
+#   * In a submodule checkout `.git` is a FILE (`gitdir: ../.git/modules/<mod>`), and JReleaser's JGit
+#     reports "repository not found". `--git-root-search` gets past it only by resolving the UMBRELLA
+#     repository, which would attach this release to the wrong repo entirely. A CI checkout is standalone,
+#     so the problem does not exist there.
+#   * jreleaser-maven-plugin is not used either. It ignores this file completely — its model comes from an
+#     XML block inside the pom — and it takes the version from <version>, which in this project is the
+#     cosmetic 0.0.0-SNAPSHOT that JitPack overrides. The tag is the version here, so the pom can never
+#     supply it.
+#
+# THE VERSION ARRIVES AS JRELEASER_PROJECT_VERSION, set by the workflow from the tag that triggered it.
+#
+# NOTHING HERE TOUCHES AN ORDINARY BUILD: no Maven plugin, no lifecycle binding, nothing to download.
+# `mvn install` at the umbrella root is byte-for-byte what it was, which is the point — seeing a local
+# change must never require cutting a release.
+
+project:
+  name: botmaker-studio-api
+  description: The contract a BotMaker Studio plugin compiles against.
+  longDescription: |
+    Interfaces and records only: what a plugin contributes to the palette, how it edits a value slot, and
+    the value vocabulary a project variable is spelled in. It depends on nothing else of BotMaker's, which
+    is the only shape in which it can version more slowly than the SDK — a bot's source can be rewritten
+    when an API moves, and a plugin's compiled .class files cannot be rewritten by anybody.
+  authors:
+    - LiQiyeDev
+  license: CC0-1.0
+  copyright: LiQiyeDev
+  inceptionYear: '2026'
+  links:
+    homepage: https://github.com/LiQiyeDev/botmaker-studio-api
+  languages:
+    java:
+      groupId: com.github.LiQiyeDev
+      artifactId: botmaker-studio-api
+      version: '21'
+
+release:
+  github:
+    owner: LiQiyeDev
+    name: botmaker-studio-api
+    tagName: 'v{{projectVersion}}'
+    releaseName: 'v{{projectVersion}}'
+    # release.sh created and pushed the tag, and that push is what started the workflow running this — so
+    # there is nothing left to tag. Keeping the tag on the umbrella's side is deliberate: the tag is what
+    # orders a cross-module release and triggers every downstream CI job, and that ordering is the one
+    # thing JReleaser has no way to express.
+    skipTag: true
+    # A pushed tag cannot be edited and a published release should not be silently replaced.
+    overwrite: false
+    update:
+      enabled: false
+    # The CHANGELOG.md section for exactly this version, written here by the workflow's `notes` step
+    # through tools/changelog-section.sh — the SAME script the umbrella's release.sh calls to gate the
+    # release (check_changelog). One extractor, two readers in two repositories: a release whose notes come
+    # from a different rule than the one that gated it can pass the gate and publish something else.
+    #
+    # `external` is taken verbatim — no template resolution, no commit-log generation. The changelog is
+    # written by a person; JReleaser's job here is to carry it, not to compose it.
+    changelog:
+      external: target/jreleaser-changelog.md
