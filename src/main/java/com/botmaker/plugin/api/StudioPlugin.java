@@ -28,6 +28,8 @@ import java.util.List;
  *       stored text means.</li>
  *   <li><b>parameters</b> — {@link #parameters(String)}: the sections of the Parameters window this plugin
  *       owns, and the generated class each one's values become fields of.</li>
+ *   <li><b>toolbar</b> &mdash; {@link #toolbarItems()}: buttons, contributed as data. The host owns the
+ *       grouping, the order, the packing and the overflow menu; a plugin owns what a press does.</li>
  *   <li><b>generation</b> — not declared here. A plugin that generates project files owns whole files keyed
  *       by their project-relative path, and contributes them through its own authoring entry point.</li>
  * </ul>
@@ -107,6 +109,25 @@ public interface StudioPlugin {
      * @param pinnedVersion the version of this plugin the open project depends on; never {@code null}
      */
     default List<ParameterGroup> parameters(String pinnedVersion) {
+        return List.of();
+    }
+
+    /**
+     * The toolbar buttons this plugin contributes.
+     *
+     * <p>Data, not nodes — see {@link ToolbarItem} for why, and for the rule that the label is a supplier so
+     * a button may say what the project currently holds. The host groups, orders, packs, overflows and
+     * themes them; this decides only what is offered and what a press does.
+     *
+     * <p>{@link ToolbarGroup#STUDIO} is <b>refused</b>, with the plugin named. It is the host's own section,
+     * for the things that would still make sense with every plugin uninstalled, and an item quietly re-homed
+     * out of it would be worse than a refusal: a user reads that part of the bar as the application rather
+     * than as their project.
+     *
+     * <p>Called once when a project's plugins are bound, not on every layout. A plugin whose set of items
+     * depends on state should return them all and let a supplier or an {@link EnabledWhen} say which apply.
+     */
+    default List<ToolbarItem> toolbarItems() {
         return List.of();
     }
 }

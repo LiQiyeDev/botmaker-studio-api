@@ -5,6 +5,47 @@ reasoning.
 
 ## Done
 
+### 2026-08-29 — the toolbar surface, and the one member that could not be a String
+
+Plugin platform, phase 13a. `ToolbarItem`, `ToolbarGroup`, `EnabledWhen`, `ActionContext` and
+`StudioPlugin.toolbarItems()`. The fifth contribution surface, and the first one where the plugin hands over
+**data** rather than a `Node`.
+
+- **Why data here and a `Node` for `SlotEditor`.** A bespoke image picker cannot be described as a record; a
+  button can. What describing it buys is everything a *shared* bar has to own centrally — the group, the
+  order, the separators, the packing, the overflow menu, the icon box, the theme. A surface returning nodes
+  would hand all of that to each plugin, and two plugins would produce a bar with two button heights.
+- **The label is a `Supplier<String>`, and so is the icon.** This is the one place the sketch was wrong and
+  the correction is the useful part: the host's own bar already had a Capture Target button that relabels
+  from project state, a Launch Target button that does the same *and* resolves a game's real title and cover
+  art on a background thread. A record of `String` would have described a toolbar nobody has. The cost is an
+  obligation on the plugin — cheap and pure, called during layout on the FX thread — stated in the javadoc
+  where somebody will actually read it.
+- **A fourth contributable group, `TOOLS`, was added while porting the host's own bar.** With
+  `PROJECT`/`AUTHORING`/`RUN` alone, today's hand-arranged reading order could not be reproduced: the
+  instruments (Input, Templates, Overlay, Record, Resources) sit *after* the run cluster. That the four
+  groups reproduce the existing sequence exactly was the acceptance test for the port, and it is also the
+  argument that the groups are real rather than invented.
+- **`ToolbarGroup.STUDIO` is refused, not re-homed.** The host's own section, for what would still make sense
+  with every plugin uninstalled. A plugin quietly moved out of it would sit where a user reads the
+  application rather than their project, so the drop is loud and names the plugin.
+- **`EnabledWhen` is a closed set rather than a predicate**, and the reason is cost rather than taste: a
+  `BooleanSupplier` is somebody else's code called once per item per plugin on every state change, inside a
+  layout pass, with no way for the host to know what it reads. Four states the host already broadcasts make
+  it a switch. An item wanting more says why in a dialog when pressed — better than a greyed button with no
+  explanation.
+- **No toggle kind and no read-out kind**, though the host has one of each. Adding a contract member for the
+  host's only instance of a thing is exactly what the `Assets`/`SourceChoice` reversal recorded, so Studio's
+  debug toggle and resolution label stay hand-built nodes placed beside the described ones.
+- **`ActionContext` is three members**, on `StudioServices`' rule: the project's name (a name, not a path —
+  a path invites writing into a project directory behind the host's back), the plugin's own pinned version,
+  and the services. Nothing a plugin could answer for itself.
+
+**What this surface does not yet carry, and it is the whole of phase 13:** the SDK contributes no items
+through it. Its eleven buttons are still Studio's, because their actions are Studio dialogs on Studio's
+project services, and moving the *declaration* without the *behaviour* would need an intent registry — which
+was offered and declined. The dialogs move instead, once phase 14 gives them a project surface to stand on.
+
 ### 2026-08-28 — the GitHub Release is published from here, by JReleaser
 
 - **`jreleaser.yml` and a `release` job in `ci.yml`.** A `v*` tag now publishes this module's GitHub

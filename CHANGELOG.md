@@ -17,6 +17,23 @@ is allowed to make. Additions arrive as `default` methods.
 
 ## [Unreleased]
 
+- **The toolbar is a contribution surface** — `StudioPlugin.toolbarItems()`, with `ToolbarItem`,
+  `ToolbarGroup`, `EnabledWhen` and `ActionContext`. **The plugin contributes data and the host builds the
+  node**, deliberately unlike `SlotEditor`, which hands back a `Node`. The difference is expressiveness, not
+  consistency: a bespoke image picker cannot be described as data and a button can, and describing it as data
+  is what lets the host keep the things a *shared* bar has to own — grouping, ordering, packing, the overflow
+  menu, the icon box and the theme. Two plugins returning nodes would produce a bar with two button heights.
+  - **The label and the icon are `Supplier`s.** Not a generalisation for its own sake: the host's own bar
+    already had two buttons that relabel from project state and a third that resolves a game's real title and
+    cover art on a background thread, so a record of `String` would have described a toolbar nobody has. The
+    contract's obligation on a plugin is stated where it will be read — cheap and pure, called during layout.
+  - **The group is a closed enum the host owns**, and `ToolbarGroup.STUDIO` is **refused** with the plugin
+    named. A plugin picks a group and an order within it; it cannot open a section, because a bar whose shape
+    depends on install order is a bar nobody can predict.
+  - **`EnabledWhen` is a closed set, not a `BooleanSupplier`.** Four states the host already broadcasts, so
+    enablement is a switch rather than somebody else's code run once per item per plugin inside a layout pass.
+  - **`ActionContext` is three members** and stays that way for the same reason `StudioServices` is five: the
+    project's name, this plugin's pinned version, and the host services. Nothing a plugin could answer alone.
 - **`StudioServices` is deliberately five members, and the test is strict**: a service belongs there only when
   **the host is the only possible source of it** — which project is open, the theme, the window a dialog is
   owned by, and the screen overlay (`Capture`: `selectRegion`, `pickPoint`, `sampleColor`, `grabFrame`).
