@@ -1,10 +1,14 @@
 package com.botmaker.plugin.api;
 
 import com.botmaker.plugin.api.catalog.PaletteCatalog;
+import com.botmaker.plugin.api.catalog.ScaffoldCatalog;
+import com.botmaker.plugin.api.scaffold.Seeding;
 import com.botmaker.plugin.api.value.ValueCatalog;
 import com.botmaker.plugin.api.value.ValueType;
 
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 /**
  * What a BotMaker Studio plugin is, from the host's side: an id and a set of contributions.
@@ -30,8 +34,9 @@ import java.util.List;
  *       owns, and the generated class each one's values become fields of.</li>
  *   <li><b>toolbar</b> &mdash; {@link #toolbarItems()}: buttons, contributed as data. The host owns the
  *       grouping, the order, the packing and the overflow menu; a plugin owns what a press does.</li>
- *   <li><b>generation</b> — not declared here. A plugin that generates project files owns whole files keyed
- *       by their project-relative path, and contributes them through its own authoring entry point.</li>
+ *   <li><b>seed files</b> &mdash; {@link #scaffold(String)} and {@link #seedings(String, Path)}: real
+ *       compiling classes this plugin ships, and which instances of them a given project wants. The host owns
+ *       the parse, the substitution and the path; the plugin owns the file and the data behind it.</li>
  * </ul>
  *
  * <p><b>Panels are deliberately not a surface.</b> A plugin contributes to the editor; it does not
@@ -129,5 +134,69 @@ public interface StudioPlugin {
      */
     default List<ToolbarItem> toolbarItems() {
         return List.of();
+    }
+
+    /**
+     * The seed files this plugin ships — real, compiling classes in its own build, each written into a
+     * project once.
+     *
+     * <p>The sibling of {@link #catalog(String)}, and deliberately so: a plugin names its seeds as class
+     * literals and everything else is read off them, so the list is checked by javac and a renamed seed
+     * nobody re-catalogued does not compile. See {@link ScaffoldCatalog} for what is read, and
+     * {@link com.botmaker.plugin.api.scaffold} for the marks that say what a host may substitute.
+     *
+     * <p><b>The file is written once; the marked regions are maintained.</b> A seed is written when the thing
+     * it seeds is created and is never written again — from that moment every line of it belongs to the user,
+     * including the lines this plugin wrote. What a host may still touch afterwards is exactly what the marks
+     * name: the substituted type name and the substituted enum constants, rewritten in place in the user's own
+     * file. Everything else, and every {@link com.botmaker.plugin.api.scaffold.Editable} body above all, is
+     * theirs for good. A file whose contents <em>as a whole</em> follow from project data is not a seed and
+     * must not be shipped as one — describe that data and read it at runtime, because a file rewritten from
+     * data is a file its user cannot edit.
+     *
+     * <p>The argument is read exactly as {@link #catalog(String)}'s and {@link #parameters(String)}'s are:
+     * the pinned version as the project's pom spells it, interpreted by the plugin alone. A seed calling API
+     * a pinned version does not have would not compile in the project it landed in, so a plugin may answer
+     * {@link ScaffoldCatalog#empty()} for a version it does not want to vouch for.
+     *
+     * @param pinnedVersion the version of this plugin the open project depends on; never {@code null}
+     */
+    default ScaffoldCatalog scaffold(String pinnedVersion) {
+        return ScaffoldCatalog.empty();
+    }
+
+    /**
+     * Which instances of this plugin's seeds a given project wants, keyed by the seed's <b>unresolved</b>
+     * {@link com.botmaker.plugin.api.scaffold.Scaffold#path()}.
+     *
+     * <p>{@link #scaffold(String)} answers what shapes exist; this answers how many files there are and what
+     * goes in them. The two are separate calls because they change on different clocks — a plugin's seeds
+     * change when the plugin is released, and a project's instances change every time the user adds something.
+     *
+     * <p><b>The plugin reads its own data.</b> That is what {@code projectDir} is for and it is the whole
+     * shape of this surface: the host knows a project is open and nothing about what is in it, so a plugin
+     * storing five activities in a file of its own is the only thing that can say there are five files to
+     * write. A host that knew would be a host that had learned one plugin's vocabulary.
+     *
+     * <p><b>Every instance carries a key, and the key is not the name.</b> See {@link Seeding} — the key is
+     * this plugin's own stable identity, and it is what turns a user's rename into a rename rather than into
+     * one orphaned file plus one fresh seed written over their work. A plugin whose data has ids should hand
+     * those over unchanged.
+     *
+     * <p>Called whenever the host reconciles a project — on open and after a change — so it must be cheap
+     * enough to run often and must not assume it is called once. Answering {@code Map.of()} is the ordinary
+     * state of a project that wants none of this plugin's seeds, and is not an error.
+     *
+     * <p>Nothing here is trusted blindly: the host crosses this with the catalog through
+     * {@link com.botmaker.plugin.api.catalog.ScaffoldPlan}, which refuses a name that is not a Java
+     * identifier, a duplicate constant, a key no seed declares and two instances resolving to one file — each
+     * as a line in {@code problems()} rather than as a throw.
+     *
+     * @param pinnedVersion the version of this plugin the open project depends on; never {@code null}
+     * @param projectDir    the root of the open project — the plugin's own files are under it, and reading
+     *                      them is how this question gets answered
+     */
+    default Map<String, List<Seeding>> seedings(String pinnedVersion, Path projectDir) {
+        return Map.of();
     }
 }
