@@ -17,6 +17,13 @@ is allowed to make. Additions arrive as `default` methods.
 
 ## [Unreleased]
 
+- **Removed — the scaffold surface.** `com.botmaker.plugin.api.scaffold` (`@Scaffold`, `@ClassName`,
+  `@EnumValues`, `@Editable`, `Seeding`), `ScaffoldCatalog`, `ScaffoldEntry`, `ScaffoldPlan` and
+  `StudioPlugin.scaffold`/`seedings`. A plugin no longer contributes files to a user's project at all: **a
+  project's structure belongs to the user, and a plugin contributes methods a user calls.** A file a plugin
+  owns inside somebody's source tree is a file its user cannot freely edit, rename or delete, and the ledger,
+  reconciler and rename engine that kept such a file owned were all cost paid to work around that. Never
+  released, so no plugin can have compiled against it.
 - **Fixed — `ValueCatalog.types()` answers in registration order.** It held its registrations in a
   `Map.copyOf`, whose iteration order is unspecified *and randomised per JVM run*, so every "what type is this
   variable" dropdown came out in a different order each time the host started — contrary to `types()`' own

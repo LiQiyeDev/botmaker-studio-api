@@ -5,6 +5,32 @@ reasoning.
 
 ## Done
 
+### 2026-08-29 — the scaffold surface is deleted: a plugin does not write files
+
+`com.botmaker.plugin.api.scaffold` (`@Scaffold`, `@ClassName`, `@EnumValues`, `@Editable`, `Seeding`),
+`catalog.ScaffoldCatalog`/`ScaffoldEntry`/`ScaffoldPlan` and `StudioPlugin.scaffold`/`seedings`, gone whole —
+days after they landed, and the reversal is worth more than the surface was.
+
+- **What it did.** A *seed* was a real compiling class in the plugin's own build, marked with what a host may
+  substitute, written into a user's project once and thereafter maintained at the marks. Every step of it was
+  an improvement on the `SourceEmitter` it replaced: javac checked the seed, the class list was class
+  literals, `ScaffoldPlan` validated without a parser, and `Seeding.key` told a rename from a
+  delete-plus-create.
+- **What was wrong is one level up.** Replacing one code generator with a generalised one made the wrong
+  thing a *surface*: any plugin could own files inside somebody's source tree. A file a plugin owns is a file
+  its user cannot freely edit, rename or delete — and the ledger, the reconciler and the reference-rewriting
+  rename engine the host grew were all cost paid to work around that.
+- **The rule now**: a project's structure belongs to the user; a plugin contributes methods a user calls. It
+  is the same shape as the `Assets`/`Capture.SourceChoice` reversal two days earlier — *the host owned the
+  policy only because it was written first* — and it is stated in `CLAUDE.md` beside that one.
+- **What the surface was actually for still has an answer.** An activity's behaviour becomes
+  `Activities.define("Mining", ctx -> …)`, written wherever the user likes. What followed as a whole from
+  project data was data all along, which was the seed surface's own stated rule and the one its own files
+  failed. The compile check a per-activity `Outcome` enum bought is replaced by a host picker on the
+  argument — a contribution surface this module already has.
+- **Kept from it**: `javax.lang.model.SourceVersion` over a hand-rolled keyword list, and the reminder that
+  reflection promises no member order. Both are recorded in `CLAUDE.md`.
+
 ### 2026-08-29 — `types()` answers in registration order again
 
 `ValueCatalog` held its registrations in `Map.copyOf`. That produces an immutable map whose iteration order is

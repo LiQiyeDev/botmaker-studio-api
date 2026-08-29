@@ -13,12 +13,9 @@ one artifact (`javafx-controls`, `provided`).
 - `com.botmaker.plugin.api` — `StudioPlugin`, `SlotEditor`, `SlotContext`, `ValueContext`, `TypeRef`,
   `StudioServices` and the three services it exposes (`Theme`, `Capture`, `Dialogs`) plus `Region`.
 - `com.botmaker.plugin.api.catalog` — `PaletteCatalog`, `Category`, `FacadeEntry`, `MemberEntry`,
-  `MemberId`, and the package-private `SourceOrder`, plus `ScaffoldCatalog`, `ScaffoldEntry` and
-  `ScaffoldPlan`. The *result* types: `PaletteCatalog.of(Class<?>...)` and `ScaffoldCatalog.of(Class<?>...)`
-  build them by reflection. `CatalogBuilder`, `MemberRef` and the arity shapes `M0`–`M5` were deleted on
-  2026-08-27 — see *The catalog* below.
-- `com.botmaker.plugin.api.scaffold` — **`@Scaffold`, `@ClassName`, `@EnumValues`, `@Editable`** and the
-  record `Seeding`: the surface by which a plugin puts a file into a *user's project*. See *Seeds* below.
+  `MemberId`, and the package-private `SourceOrder`. The *result* type:
+  `PaletteCatalog.of(Class<?>...)` builds it by reflection. `CatalogBuilder`, `MemberRef` and the arity
+  shapes `M0`–`M5` were deleted on 2026-08-27 — see *The catalog* below.
 - `com.botmaker.plugin.api.value` — the **value vocabulary**: `ValueType`, `ValueShape`, `ValueChoice`,
   `Visibility`, `Range`, `ValueCodec` and `ValueCatalog`. What a bot's *variable* can be, which is a question
   the contract answers so a plugin can own a type without the SDK granting it one.
@@ -176,57 +173,45 @@ scan of that jar, and the catalog answers only curation, order and labels. The t
 intersection, which fails in the safe direction: an old pin may be offered slightly less than it truly had,
 never more.
 
-## Seeds — how a plugin writes a file into a user's project
+## A plugin does not write files — and this is where that was tried
 
-The replacement for `botmaker-sdk`'s `SourceEmitter`, which built nine `.java` files as Java strings that
-nothing checked until somebody ran the generator. A **seed** is a real class in the plugin's own build,
-marked with what a host may substitute, so it is checked by javac on every build of the plugin that ships it.
+Deleted on 2026-08-29, whole: `com.botmaker.plugin.api.scaffold` (`@Scaffold`, `@ClassName`, `@EnumValues`,
+`@Editable`, `Seeding`), `catalog.ScaffoldCatalog`/`ScaffoldEntry`/`ScaffoldPlan`, and
+`StudioPlugin.scaffold`/`seedings`. It is recorded rather than edited away, because the reasoning that
+produced it is a good one and will be produced again.
 
-**Two calls, because they change on different clocks.** `StudioPlugin.scaffold(pin)` → `ScaffoldCatalog`
-answers *what shapes exist* and changes when the plugin is released. `StudioPlugin.seedings(pin, projectDir)`
-→ `Map<String, List<Seeding>>` answers *which instances this project wants* and changes every time the user
-adds something. `ScaffoldPlan.of` crosses them.
+A **seed** was a real class in the plugin's own build, marked with what a host may substitute, written into a
+user's project once and thereafter *maintained* at the marks — the type name, and the constants of a
+substituted enum. It replaced `botmaker-sdk`'s `SourceEmitter`, which built nine `.java` files as Java
+strings that nothing checked until somebody ran the generator, and every step of it was an improvement on
+what it replaced: javac checked the seed, the class list was class literals, `ScaffoldPlan` validated without
+a parser, the key told a rename from a delete-plus-create.
 
-**One seed is one shape; a project wants many files from it.** That is why `Seeding` nests its values inside
-the instance rather than the plugin returning one key→values map: `"outcomes"` means *this file's* outcomes,
-so the compound key that a global map would force — the key having to encode which activity it belonged to —
-never has to exist.
+**The flaw is one level up, and it is the same flaw as `Assets` above.** Replacing one code generator with a
+generalised one made the wrong thing a surface: *any* plugin could now own files inside somebody's source
+tree. A file a plugin owns is a file its user cannot freely edit, rename or delete, and everything the
+mechanism grew — a key ledger persisted in the project, a reconciler, a rename engine rewriting the user's
+own references — was cost paid to work around that one fact. The rule that replaces it:
 
-**`Seeding.key` is not `Seeding.name`, and the distinction earns its keep exactly once.** The key is the
-plugin's own stable id. When a user renames the thing a seed seeded, a host matching on the *name* sees a
-file that vanished and a file that appeared, and writes a fresh seed over somebody's work; matching on the
-key, it finds the file it wrote for that key and performs a rename — the type, the file, and the references
-in the user's own source. Nothing else needs the key, and nothing else should.
+> **A project's structure belongs to the user. A plugin contributes methods a user calls.**
 
-**The file is written once; the marked regions are maintained.** This is the amendment the first draft of
-the javadoc needed, and both halves are load-bearing. Write-once alone cannot hold — a user adding an outcome
-on the flow canvas would get a file whose enum no longer lists it, and a project that does not compile.
-Maintained-everywhere cannot hold either — that is regeneration wearing a new word, and it destroys the body
-the user opened the file to write. `SourceEmitter.stub()` had already conceded this in its own javadoc
-("SEED — with one exception: `Outcome`"), and Studio's `ActivityStubSync` is the existing hardcoded
-implementation of it.
+Everything a seed was for has an answer on this side of the line. Behaviour is a static method: an activity's
+body is `Activities.define("Mining", ctx -> …)` written wherever the user likes, not a generated subclass.
+Anything that followed *as a whole* from project data was data all along and is read at runtime — which was
+already the seed surface's own rule, stated in its javadoc, and is what the rest of the file always failed.
+The one thing genuinely lost is the compile check a per-activity `Outcome` enum bought; it is replaced by a
+host **picker** on the argument, which is a contribution surface this module already has.
 
-**Intent and addressing are two different jobs, and this module only does the first.** Reflection knows a
-type or a member exists and nothing whatever about where its text sits, so the annotations carry intent and
-the host parses `ScaffoldEntry.source` to locate it. That is rule 3 above applied to seeds, and it is why
-`ScaffoldPlan` validates only what is answerable without a parser: an identifier is a keyword or it is not,
-two constants are equal or they are not, two paths collide or they do not. Everything needing the project —
-does this path collide with another plugin's file, does this class name collide with a type in the user's
-source, does the file already exist — stays with the host.
+Two smaller things learned there, kept because they generalise:
 
-**Use `javax.lang.model.SourceVersion`, not a keyword list.** `ScaffoldPlan` validates names and constants
-with it. There are already three hand-rolled keyword lists in this project (Studio's `VariableNames`,
-`FunctionDraft`, and a partial one elsewhere); do not add a fourth, and note that `SourceVersion` also covers
-the three cases such a list always misses — `true`, `false` and `null` are literals rather than keywords, and
-none of them is a name. It lives in the `java.compiler` module, which is present: Studio's jpackage build
-bundles a **full** JDK runtime.
-
-**Reflection promises no order, and this cost a test failure worth remembering.** `enums()` and `editable()`
-read `getDeclaredClasses()`/`getDeclaredMethods()`, whose order is unspecified — so which of two enums
-claiming one key "won" varied by JVM, which makes a plugin's own test pass on its author's machine and fail
-in CI. Both are sorted now, and the javadoc claim of *declaration order* is gone. This is deliberately **not**
-`SourceOrder`'s problem: a palette's members are laid out for a human and their order is the author's, while
-a hole is addressed by its key and never by its position.
+- **`javax.lang.model.SourceVersion`, never a hand-rolled keyword list.** It covers the three cases such a
+  list always misses — `true`, `false` and `null` are literals rather than keywords, and none is a name. It
+  lives in the `java.compiler` module, which is present: Studio's jpackage build bundles a **full** JDK
+  runtime. There are already three hand-rolled lists in this project (Studio's `VariableNames`,
+  `FunctionDraft`, and a partial one elsewhere); do not add a fourth.
+- **Reflection promises no order**, and `getDeclaredClasses()`/`getDeclaredMethods()` order varying by JVM is
+  how a plugin author's own test passes locally and fails in CI. Where order matters to a *human* — a
+  palette's members — `SourceOrder` recovers the author's; where a thing is addressed by key, sort it.
 
 ## japicmp, and why it is legitimate here
 
@@ -258,8 +243,7 @@ every release commit from the first one onward.
 ## Building
 
 ```bash
-mvn test        # PaletteCatalogTest (10) + ValueVocabularyTest (9) + ScaffoldCatalogTest (12)
-                # + ScaffoldPlanTest (21) — the module's only behaviour
+mvn test        # PaletteCatalogTest (10) + ValueVocabularyTest (9) — the module's only behaviour
 mvn verify      # the above plus japicmp against botmaker.japicmp.baseline (see above)
 mvn install     # com.github.LiQiyeDev:botmaker-studio-api:0.0.0-SNAPSHOT
 ```
