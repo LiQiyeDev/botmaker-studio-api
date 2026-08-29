@@ -6,6 +6,7 @@ import com.botmaker.plugin.api.scaffold.Seeding;
 
 import javax.lang.model.SourceVersion;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -103,15 +104,27 @@ public record ScaffoldPlan(List<PlannedFile> files, List<String> problems) {
         List<PlannedFile> files = new ArrayList<>();
         Map<String, String> claimedPaths = new HashMap<>();
 
-        for (Map.Entry<String, List<Seeding>> wanted : seedings.entrySet()) {
-            ScaffoldEntry seed = catalog.seed(wanted.getKey());
-            if (seed == null) {
-                problems.add("nothing seeds '" + wanted.getKey() + "', so its "
-                        + count(wanted.getValue()) + " went nowhere");
-                continue;
-            }
-            plan(seed, wanted.getValue(), packageName, files, claimedPaths, problems);
+        // Driven by the CATALOG's order, not the map's, and that is not a preference. A plugin hands over
+        // whatever Map it likes — Map.of and Map.copyOf are both unordered — so iterating the map would make
+        // the order files are planned in a property of one JVM's hashing. Everything downstream is ordered:
+        // a host writes them in this order and reports them in this order, and a plugin author's own test
+        // must not pass on their machine and fail in CI. The catalog's order is the plugin's declaration
+        // order, which is the one order it can reason about. Same fix, same reason, as ScaffoldCatalog.enums.
+        for (ScaffoldEntry seed : catalog.seeds()) {
+            plan(seed, seedings.get(seed.path()), packageName, files, claimedPaths, problems);
         }
+        // A key naming no seed is still worth a line — it is a plugin's typo, and silence would make it look
+        // as though the file had been written. Reported after the plan so the order above is untouched, and
+        // sorted because this arm is reading the map.
+        List<String> unclaimed = new ArrayList<>();
+        for (Map.Entry<String, List<Seeding>> wanted : seedings.entrySet()) {
+            if (catalog.seed(wanted.getKey()) == null) {
+                unclaimed.add("nothing seeds '" + wanted.getKey() + "', so its "
+                        + count(wanted.getValue()) + " went nowhere");
+            }
+        }
+        unclaimed.sort(Comparator.naturalOrder());
+        problems.addAll(unclaimed);
         return new ScaffoldPlan(files, problems);
     }
 
