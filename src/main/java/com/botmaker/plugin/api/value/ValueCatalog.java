@@ -1,6 +1,7 @@
 package com.botmaker.plugin.api.value;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,10 +36,25 @@ public final class ValueCatalog {
     /** The id a catalog's fallback text type carries by convention. */
     public static final String TEXT_ID = "TEXT";
 
+    /**
+     * The registrations, <b>in registration order</b>.
+     *
+     * <p>An unmodifiable {@link LinkedHashMap} and deliberately <em>not</em> {@code Map.copyOf}, which is
+     * what this was until 2026-08-29. {@code Map.copyOf} produces an immutable map whose iteration order is
+     * unspecified <em>and randomised per JVM run</em> — so {@link #types()} answered a different order every
+     * time Studio started, contrary to its own javadoc and to {@code ValueWire.registered()}'s. What a user
+     * saw was the "what type is this variable" dropdown reshuffling itself between launches, which reads as
+     * the application being broken rather than as a bug anybody would report.
+     *
+     * <p>Found by diffing a generated {@code Parameters} file across two builds of the <em>same</em> source
+     * and getting two different files. It had been true since the vocabulary opened, and no single run of
+     * anything could have shown it — which is the argument for pinning it with a test rather than trusting
+     * that the map type "obviously" preserves order.
+     */
     private final Map<String, Entry> byId;
 
     private ValueCatalog(Map<String, Entry> byId) {
-        this.byId = Map.copyOf(byId);
+        this.byId = Collections.unmodifiableMap(new LinkedHashMap<>(byId));
     }
 
     public static Builder builder() {

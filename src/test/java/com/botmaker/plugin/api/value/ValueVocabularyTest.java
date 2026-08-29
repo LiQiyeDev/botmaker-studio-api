@@ -130,6 +130,34 @@ class ValueVocabularyTest {
         assertEquals(ValueShape.ONE_OF, new ValueChoice(TEXT, ValueShape.ONE_OF).shape());
     }
 
+    /**
+     * {@code types()} answers in registration order, and a merge appends rather than reshuffling.
+     *
+     * <p>Pinned because it was <b>not true until 2026-08-29</b> and the symptom was invisible in any single
+     * run: the catalog held its entries in a {@code Map.copyOf}, whose iteration order is unspecified
+     * <em>and randomised per JVM run</em>. Every dropdown of "what type can this variable be" therefore came
+     * out in a different order each time Studio started. Nobody would file that as a bug; they would file it
+     * as the application feeling unreliable.
+     */
+    @Test
+    void typesComeBackInRegistrationOrder() {
+        ValueType third = ValueType.of("discord.Emoji").source("String").build();
+        ValueCatalog c = ValueCatalog.builder().add(TEXT, ECHO).add(CHANNEL, ECHO).add(third, ECHO).build();
+
+        assertEquals(List.of(ValueCatalog.TEXT_ID, "discord.Channel", "discord.Emoji"),
+                c.types().stream().map(ValueType::id).toList());
+        assertEquals(c.types().stream().map(ValueType::id).toList(),
+                ValueCatalog.builder().add(TEXT, ECHO).add(CHANNEL, ECHO).add(third, ECHO).build()
+                        .types().stream().map(ValueType::id).toList(),
+                "two identically built catalogs must agree, in one run and across runs");
+
+        ValueType theirs = ValueType.of("other.Thing").source("String").build();
+        assertEquals(List.of(ValueCatalog.TEXT_ID, "discord.Channel", "discord.Emoji", "other.Thing"),
+                c.merge(ValueCatalog.builder().add(theirs, ECHO).build())
+                        .types().stream().map(ValueType::id).toList(),
+                "a second plugin's types are appended, so installing one does not reorder the first's");
+    }
+
     @Test
     void everyWireParseIsTotal() {
         ValueCatalog c = catalog();

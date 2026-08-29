@@ -17,6 +17,11 @@ is allowed to make. Additions arrive as `default` methods.
 
 ## [Unreleased]
 
+- **Fixed — `ValueCatalog.types()` answers in registration order.** It held its registrations in a
+  `Map.copyOf`, whose iteration order is unspecified *and randomised per JVM run*, so every "what type is this
+  variable" dropdown came out in a different order each time the host started — contrary to `types()`' own
+  javadoc. An unmodifiable `LinkedHashMap` instead. A merge appends rather than reshuffling, so installing a
+  second plugin does not reorder the first's types.
 - **The toolbar is a contribution surface** — `StudioPlugin.toolbarItems()`, with `ToolbarItem`,
   `ToolbarGroup`, `EnabledWhen` and `ActionContext`. **The plugin contributes data and the host builds the
   node**, deliberately unlike `SlotEditor`, which hands back a `Node`. The difference is expressiveness, not

@@ -5,6 +5,22 @@ reasoning.
 
 ## Done
 
+### 2026-08-29 — `types()` answers in registration order again
+
+`ValueCatalog` held its registrations in `Map.copyOf`. That produces an immutable map whose iteration order is
+unspecified **and randomised per JVM run** — so `types()`, whose own javadoc promises registration order and
+which backs every "what type is this variable" dropdown, answered a different order every time Studio started.
+
+- **The symptom is not bug-shaped.** Nobody files "the dropdown is in a different order today"; they conclude
+  the application is unreliable. And no single run of anything could show it — it surfaced only from diffing a
+  generated `Parameters` file across two builds of the *same* source and getting two different files.
+- **It had been true since the vocabulary opened**, i.e. since `ValueType` stopped being an enum. An enum has
+  a declaration order for free; a registry has one only if it keeps one.
+- An unmodifiable `LinkedHashMap`, with the reason on the field so it is not "simplified" back.
+  `typesComeBackInRegistrationOrder` pins three things: one catalog's order, two identically built catalogs
+  agreeing (in one run and across runs), and a merge **appending** — installing a second plugin must not
+  reorder the first's types.
+
 ### 2026-08-29 — the toolbar surface, and the one member that could not be a String
 
 Plugin platform, phase 13a. `ToolbarItem`, `ToolbarGroup`, `EnabledWhen`, `ActionContext` and
