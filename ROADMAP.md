@@ -5,6 +5,39 @@ reasoning.
 
 ## Done
 
+### 2026-08-30 — a second plugin interface was built and withdrawn the same day
+
+`CompanionPlugin` — `id`, `displayName`, `toolbarItems`, `projectClosing` — plus `ThemeTokens` and
+`StudioServices.themeTokens()`, on the argument that `StudioPlugin` is two interfaces wearing one name: one
+for plugins that shape the user's **code**, one for plugins that do something **beside** it. The Remote
+Pilot was the case that drew the line, and out of the split came `botmaker-plugin-protocol` (JSON-RPC over
+stdio, so a companion could be written in any language) and `ProcessPlugin` in `botmaker-plugin-host`.
+
+**All of it is reverted.** The maintainer's judgement, and it is the right one to record rather than argue:
+**the machinery was heavier than the problem it was solving, and the problem was not clearly stated.** One
+plugin — the pilot — wanted to be out of process, and answering that took a new module, a new dependency
+(LSP4J plus a pinned Gson), a process supervisor, a restart policy, a descriptor format, a wire-record
+parallel of four contract records, and a mapping layer to keep them in step by hand. The pilot stays an
+**exception attached to the SDK plugin** instead: `SdkPlugin` owns its toolbar item and releases it in
+`projectClosing()`, exactly as before.
+
+**What is worth keeping from the exercise, for whoever proposes it again:**
+
+- **Seven of `StudioPlugin`'s eight surfaces already reduce to JSON.** `id`, `displayName`, `catalog`,
+  `valueTypes` (a `ValueCodec` is `String`→`String`), `parameters`, `toolbarItems`, `projectClosing`. The
+  one that does not is `slotEditors()`, which returns a JavaFX `Node` — and it is exactly the set that
+  belongs to shaping code. That audit is still true and is the honest starting point for a second attempt.
+- **The line, if it is ever drawn again:** *if it decides what the user's code says it is a `StudioPlugin`;
+  otherwise it is a companion; a surface that seems to want both is two surfaces.*
+- **Javac states the two-classes rule for you.** Two unrelated interfaces declaring the same `default`
+  cannot both be inherited, so a class implementing both must write all of them out.
+- **The trigger to watch for is a second plugin, not a better protocol.** The whole cost above was carried
+  by one plugin that is already in the SDK's jar and already works. When a plugin exists that *cannot* be
+  Java — not merely one that happens to be written in TypeScript — the ledger changes.
+
+The work is in the history if it is wanted: contract `eee3891`, protocol module umbrella `21706a9`, host
+`4653064`, Studio `ee33fe5`, SDK `b934aa4`.
+
 ### 2026-08-29 — the scaffold surface is deleted: a plugin does not write files
 
 `com.botmaker.plugin.api.scaffold` (`@Scaffold`, `@ClassName`, `@EnumValues`, `@Editable`, `Seeding`),

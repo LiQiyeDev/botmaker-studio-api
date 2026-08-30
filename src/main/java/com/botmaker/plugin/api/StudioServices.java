@@ -37,21 +37,6 @@ public interface StudioServices {
     /** Applying the host's current look to a window, dialog or scene a plugin creates. */
     Theme theme();
 
-    /**
-     * The host's current look as data, for a plugin drawing its own interface where JavaFX cannot reach.
-     *
-     * <p>The companion to {@link #theme()}, not a replacement for it: {@code theme()} styles objects that
-     * exist in this JVM, and this answers the same question in a form a stylesheet, a phone client or
-     * another process can use. See {@link ThemeTokens} for why the colours are strings.
-     *
-     * <p>{@code default} for the same reason {@link #runs()} is: a host that has no theme of its own — the
-     * {@code botmaker} CLI's validator, a test harness — answers honestly without implementing anything,
-     * and {@link ThemeTokens#DEFAULT} is a legible palette rather than a set of blanks.
-     */
-    default ThemeTokens themeTokens() {
-        return ThemeTokens.DEFAULT;
-    }
-
     /** Grabbing pixels: a screen region, a colour, a frame of the target application. */
     Capture capture();
 

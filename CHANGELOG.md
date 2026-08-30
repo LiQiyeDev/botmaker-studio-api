@@ -17,25 +17,6 @@ is allowed to make. Additions arrive as `default` methods.
 
 ## [Unreleased]
 
-- **Added — `CompanionPlugin`, a second plugin interface for the plugins that do not shape code.** Four
-  members, all `default` but `id()`: `id`, `displayName`, `toolbarItems`, `projectClosing`. Everything
-  `StudioPlugin` contributes answers a question about what a bot's *source* says, and answering it needs a
-  JavaFX `Node` and a live syntax tree — `SlotEditor` returns one. The Remote Pilot answers none of them: it
-  binds a port, streams frames to a phone and drives input back, and never reads or writes a line of the
-  project's Java. **The rule for placing a new surface, from either side: if it decides what the user's code
-  says it is `StudioPlugin`, otherwise it is `CompanionPlugin`, and a surface that seems to want both is two
-  surfaces.** Nothing existing changes — `StudioPlugin` is untouched, and a host discovers both through
-  `ServiceLoader` on the same pass. **A single class implementing both is legal and discouraged**: the host
-  asks and tells it once, by object identity, but javac forces all three shared defaults to be written out,
-  and a class answering two unrelated subjects is the shape this separates. The SDK now ships `SdkPlugin`
-  and `PilotCompanion`.
-- **Added — `ThemeTokens` and `StudioServices.themeTokens()`.** The host's current look as data — dark or
-  light, seven CSS colour strings, two font stacks and a base size — for a plugin drawing where JavaFX
-  cannot reach: a page it serves, a phone client, a window belonging to another process. The companion to
-  `theme()` rather than a replacement: `Theme` styles a `Scene`, and a plugin whose interface is HTML does
-  not have one. Host-only without argument, since which theme the user chose is answerable from no file,
-  library or scan. `default`, answering `ThemeTokens.DEFAULT` — a legible light palette rather than blanks,
-  so a host with no theme still lets a plugin render something readable.
 - **Added — `Runs`, reached through `StudioServices.runs()`, and `StudioServices.status(String)`.** The open
   project's bot as a running process: `start`, `stop`, `isRunning`, `pid`, and listeners for run state and
   for telemetry. Every member is host-only for the plainest reason on that interface — the host compiled the
