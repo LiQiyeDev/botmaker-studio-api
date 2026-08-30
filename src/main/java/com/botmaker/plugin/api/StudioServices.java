@@ -42,4 +42,33 @@ public interface StudioServices {
 
     /** Native file and directory choosers, and the window a plugin's own dialog should be owned by. */
     Dialogs dialogs();
+
+    /**
+     * The open project's bot as a running process — start, stop, its pid, and what it reports.
+     *
+     * <p>Host-only for the plainest reason on this interface: the host compiled the project, holds its
+     * resolved classpath and owns the process. See {@link Runs} for why telemetry crosses as text.
+     *
+     * <p>{@code default} rather than abstract, and {@link Runs#NONE} rather than {@code null}: a host that
+     * does not run bots — the {@code botmaker} CLI's validator, a test harness — answers honestly without
+     * implementing anything, and a plugin never has to ask whether running is supported.
+     */
+    default Runs runs() {
+        return Runs.NONE;
+    }
+
+    /**
+     * Says one line in the host's own status area, where it says what it is doing.
+     *
+     * <p>For the running commentary a long action owes its user — <em>Starting…</em>, <em>Listening on
+     * …</em>, <em>Could not reach the tunnel</em>. It is the host's furniture, so it is the host's to
+     * render: a plugin cannot put a line there itself, and one that opened a window of its own to say
+     * <em>Starting…</em> would be answering a different question.
+     *
+     * <p>Not an error channel and not a dialog. Something the user must act on is a
+     * {@link Dialogs modal}; this is the line they may or may not read. A host with no status area is
+     * entitled to drop it, which is what the default does.
+     */
+    default void status(String message) {
+    }
 }

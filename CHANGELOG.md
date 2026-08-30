@@ -17,6 +17,17 @@ is allowed to make. Additions arrive as `default` methods.
 
 ## [Unreleased]
 
+- **Added — `Runs`, reached through `StudioServices.runs()`, and `StudioServices.status(String)`.** The open
+  project's bot as a running process: `start`, `stop`, `isRunning`, `pid`, and listeners for run state and
+  for telemetry. Every member is host-only for the plainest reason on that interface — the host compiled the
+  project, holds its resolved classpath and owns the process — so a plugin can build a feature *around* a
+  running bot without the host having to know what the feature is. **Telemetry crosses as one encoded frame,
+  not a decoded shape**: the format belongs to whichever runtime the bot is built on, and that runtime
+  decodes its own wire, exactly as `SlotContext.currentSource()` passes Java source rather than a syntax
+  tree. Bytes rather than text because the wire already is bytes and has one definition; a text rendering
+  invented for the contract would be owned by neither end. Both members are `default` and answer `Runs.NONE`
+  / do nothing, so a host that runs no bots — the CLI's validator, a test harness — implements neither and a
+  plugin never asks whether running is supported.
 - **Added — `StudioPlugin.projectClosing()`.** The open project is closing; release anything held on its
   behalf. Called once per bind, on the plugins that were serving the project being left and **before** their
   classloader is closed, so a plugin can still run its own code. It is not a sixth contribution surface —

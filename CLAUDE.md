@@ -79,7 +79,25 @@ When a plugin's editor needs something the host has and the contract does not ex
 the contract grows — and it grows a **capability**, never a vocabulary: nothing here may name a concept that
 belongs to some plugin's API.
 
-**A second thing passed it on 2026-08-30, and it is not on `StudioServices` at all** —
+**Two more passed it on 2026-08-30, both for the Remote Pilot becoming an SDK feature.** `StudioServices`
+gained **`runs()`** (a `Runs`: start, stop, `isRunning`, `pid`, and listeners for run state and telemetry)
+and **`status(String)`** (one line in the host's own status area). They pass on the plainest reading of the
+rule in this section: the host compiled the project, holds its resolved classpath, owns the process it
+launched, and draws the status bar. A plugin cannot start a bot it did not compile, learn that one exited,
+or discover a pid it never spawned.
+
+**The interesting half is telemetry, and it is the pattern to copy.** Studio holds a decoded
+`com.botmaker.shared.ipc.TelemetryEvent`, and passing that record would have been shorter and would have put
+one runtime's vocabulary in the contract. So `onTelemetry` hands over **one encoded frame** and this module
+has no idea what is in it — the same trick `SlotContext.currentSource()` plays with Java source. *Bytes*
+rather than text because the wire already is bytes and has exactly one definition; a text rendering invented
+for the contract would be owned by neither end and would drift from both. **When a shape wants to cross, ask
+what already has one definition and pass that.**
+
+Both are `default`, answering `Runs.NONE` and doing nothing, so a host that runs no bots implements neither
+— and a plugin never asks whether running is supported.
+
+**A third thing passed it, and it is not on `StudioServices` at all** —
 `StudioPlugin.projectClosing()`. It contributes nothing, which is why it is not a sixth surface: it is the
 one fact a plugin cannot establish for itself, that the project it opened an operating-system resource for
 is gone. A plugin polling for it would be guessing at a moment the host knows precisely. It exists because
