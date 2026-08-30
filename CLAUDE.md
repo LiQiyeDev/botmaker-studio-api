@@ -10,8 +10,9 @@ Read the umbrella `../CLAUDE.md` first for how the six modules fit together, and
 Interfaces and records. Nothing else. It has no implementation, references no Studio type, and depends on
 one artifact (`javafx-controls`, `provided`).
 
-- `com.botmaker.plugin.api` — `StudioPlugin`, `SlotEditor`, `SlotContext`, `ValueContext`, `TypeRef`,
-  `StudioServices` and the three services it exposes (`Theme`, `Capture`, `Dialogs`) plus `Region`.
+- `com.botmaker.plugin.api` — `StudioPlugin`, **`CompanionPlugin`**, `SlotEditor`, `SlotContext`,
+  `ValueContext`, `TypeRef`, `StudioServices` and the services it exposes (`Theme`, **`ThemeTokens`**,
+  `Capture`, `Dialogs`, `Runs`) plus `Region`.
 - `com.botmaker.plugin.api.catalog` — `PaletteCatalog`, `Category`, `FacadeEntry`, `MemberEntry`,
   `MemberId`, and the package-private `SourceOrder`. The *result* type:
   `PaletteCatalog.of(Class<?>...)` builds it by reflection. `CatalogBuilder`, `MemberRef` and the arity
@@ -105,6 +106,47 @@ the Remote Pilot is becoming an SDK feature and holds a bound port and a nested 
 sets for anything similar is that **only a resource the OS counts justifies a lifecycle** — anything
 garbage collection can reclaim needs no implementation. The instance is reused across projects, so it means
 *this project is over*, never *you are being discarded*.
+
+## Two plugin interfaces, and the rule for choosing between them
+
+**`CompanionPlugin` arrived on 2026-08-30, and it is a split rather than an addition.** Everything
+`StudioPlugin` contributes answers a question about what a bot's *source* says — which members the palette
+proposes, how a value is written down, what a variable may hold, what becomes a field — and answering one
+needs a JavaFX `Node` and a live syntax tree. `SlotEditor` returns a `Node`, which is the whole difficulty.
+
+A companion plugin answers none of them: a button, a window of its own, watching a run, releasing what it
+held. The Remote Pilot is the worked example and the case that drew the line — it binds a port, opens a
+nested `:N` display, streams frames to a phone and drives input back, and never touches the project's Java.
+
+**The rule for placing a new surface, applied from either side: if it decides what the user's code says it
+belongs on `StudioPlugin`; otherwise it belongs on `CompanionPlugin`. A surface that seems to want both is
+two surfaces.** That is the test to run before adding anything to either interface.
+
+**The property that makes the split worth having, and the constraint it imposes:** every member of
+`CompanionPlugin` is expressible as data — a string, a record, a notification. None of them needs a `Node`,
+a `Scene` or a `Window`. So **a member that cannot cross a process boundary does not belong on that
+interface**, which is what keeps open the possibility of a companion implemented by something that is not
+running in this JVM. Nothing about the interface *requires* a separate process; the ones that exist are
+ordinary `META-INF/services` declarations, loaded and constructed exactly like a `StudioPlugin`.
+
+**A single class implementing both is legal and discouraged.** The host asks and tells such a plugin once,
+by object *identity* rather than by id — a duplicated id is a different problem and should still get both
+plugins released. But `displayName()`, `toolbarItems()` and `projectClosing()` are declared on both
+interfaces, so javac refuses to inherit either default and forces all three to be written out; and a class
+answering two unrelated subjects is precisely the shape this separation undoes. The SDK ships two classes,
+`SdkPlugin` and `PilotCompanion`.
+
+**`ThemeTokens` came in with it, and is the first member added *because* of the split.** `Theme` applies the
+host's look to a `Scene`, a `Stage`, a `Dialog` — objects that exist only in this JVM. A plugin whose
+interface is a page it serves has none of them and wants the colours themselves, so `themeTokens()` answers
+the same question as data: dark or light, seven CSS colour strings, two font stacks, a base size. It passes
+the host-is-the-only-possible-source test without argument — which theme the user chose is answerable from
+no file, library or scan. Colours are **strings, not `javafx.scene.paint.Color`**, for the same reason the
+record exists: a stylesheet is as likely a consumer as a JavaFX property, and a string is the only form that
+survives a process boundary. The palette is deliberately small — the roles Studio actually distinguishes —
+because a token invented here that the host does not really have would be a constant pretending to be a
+theme. Studio derives `dark` from the **luminance of the background it is painting** rather than from the
+active theme's name, so a theme added later reports itself correctly instead of defaulting to light.
 
 **One member has passed that test on `StudioServices` itself, and it is the worked example of what a
 capability looks like there.**

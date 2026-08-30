@@ -35,6 +35,18 @@ import java.util.List;
  * <p>{@link #projectClosing()} is not a sixth surface — it contributes nothing. It is the one thing a plugin
  * cannot find out for itself: that the project it opened an operating-system resource for is gone.
  *
+ * <h2>This is the interface for plugins that shape code</h2>
+ *
+ * <p>Every surface above answers a question about what a bot's source says, and answering it needs a JavaFX
+ * {@code Node} and a live syntax tree. A plugin that does something <em>beside</em> the code — a button, a
+ * window of its own, watching a run — implements {@link CompanionPlugin} instead, whose members are all
+ * expressible as data. The two are merged into one bar and one lifecycle by the host; the SDK ships one class
+ * of each, and {@link CompanionPlugin} says why a single class implementing both is a shape to avoid.
+ *
+ * <p><b>The rule for placing a new surface</b> is the same from either side: if it decides what the user's
+ * code says, it belongs here; otherwise it belongs on {@link CompanionPlugin}. A surface that seems to want
+ * both is two surfaces.
+ *
  * <p><b>Panels are deliberately not a surface.</b> A plugin contributes to the editor; it does not
  * contribute editors. The Activity Canvas and every other whole view stays the host's.
  *
