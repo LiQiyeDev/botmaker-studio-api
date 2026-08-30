@@ -17,6 +17,13 @@ is allowed to make. Additions arrive as `default` methods.
 
 ## [Unreleased]
 
+- **Added — `StudioPlugin.projectClosing()`.** The open project is closing; release anything held on its
+  behalf. Called once per bind, on the plugins that were serving the project being left and **before** their
+  classloader is closed, so a plugin can still run its own code. It is not a sixth contribution surface —
+  it contributes nothing — and it is the one thing a plugin cannot find out for itself: that the project it
+  opened a port, a nested display or a child process for is gone. Everything releasable by garbage
+  collection needs no implementation. The instance is reused across projects, so this says *this project is
+  over*, never *you are being discarded*. `default`, like every method but `id()`.
 - **Removed — the scaffold surface.** `com.botmaker.plugin.api.scaffold` (`@Scaffold`, `@ClassName`,
   `@EnumValues`, `@Editable`, `Seeding`), `ScaffoldCatalog`, `ScaffoldEntry`, `ScaffoldPlan` and
   `StudioPlugin.scaffold`/`seedings`. A plugin no longer contributes files to a user's project at all: **a

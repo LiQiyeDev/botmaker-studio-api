@@ -79,7 +79,17 @@ When a plugin's editor needs something the host has and the contract does not ex
 the contract grows — and it grows a **capability**, never a vocabulary: nothing here may name a concept that
 belongs to some plugin's API.
 
-**One member has passed that test since, and it is the worked example of what a capability looks like.**
+**A second thing passed it on 2026-08-30, and it is not on `StudioServices` at all** —
+`StudioPlugin.projectClosing()`. It contributes nothing, which is why it is not a sixth surface: it is the
+one fact a plugin cannot establish for itself, that the project it opened an operating-system resource for
+is gone. A plugin polling for it would be guessing at a moment the host knows precisely. It exists because
+the Remote Pilot is becoming an SDK feature and holds a bound port and a nested `:N` display; the rule it
+sets for anything similar is that **only a resource the OS counts justifies a lifecycle** — anything
+garbage collection can reclaim needs no implementation. The instance is reused across projects, so it means
+*this project is over*, never *you are being discarded*.
+
+**One member has passed that test on `StudioServices` itself, and it is the worked example of what a
+capability looks like there.**
 Phase 12c (2026-08-28) added `SlotContext.enclosingSource()` and `replaceEnclosingCall(String, String...)`,
 because a duration editor cannot otherwise offer "wait a random amount": the SDK's humanized wait is
 `Wait.between(min, max)` where the fixed one is `Wait.time(x)`, so ticking that box is a change to the

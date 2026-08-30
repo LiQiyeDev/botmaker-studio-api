@@ -32,6 +32,9 @@ import java.util.List;
  *       grouping, the order, the packing and the overflow menu; a plugin owns what a press does.</li>
  * </ul>
  *
+ * <p>{@link #projectClosing()} is not a sixth surface — it contributes nothing. It is the one thing a plugin
+ * cannot find out for itself: that the project it opened an operating-system resource for is gone.
+ *
  * <p><b>Panels are deliberately not a surface.</b> A plugin contributes to the editor; it does not
  * contribute editors. The Activity Canvas and every other whole view stays the host's.
  *
@@ -137,6 +140,33 @@ public interface StudioPlugin {
      */
     default List<ToolbarItem> toolbarItems() {
         return List.of();
+    }
+
+    /**
+     * The open project is closing — release anything held on its behalf.
+     *
+     * <p>Called once per bind, on the plugins that were serving the project being left, and <b>before</b>
+     * their classloader is closed, so a plugin may still run its own code here. It is called on the way to
+     * another project, on the way to no project at all, and whenever a change to the project's libraries
+     * rebinds the set.
+     *
+     * <p><b>This is a capability, not a courtesy.</b> A contribution surface returns data and needs no
+     * lifecycle; but a plugin that opens something the operating system counts — a bound port, a nested
+     * display, a child process, a watch on a directory — has no way to learn that the project it opened them
+     * for is gone. Nothing else can tell it: which project is open is exactly the question
+     * {@link StudioServices} exists for, and a plugin polling for the answer would be guessing at a moment
+     * the host already knows precisely. Everything that can be released by garbage collection should be, and
+     * needs no implementation here.
+     *
+     * <p><b>The instance is reused.</b> A plugin is constructed once by {@code ServiceLoader} and serves
+     * every project bound to it afterwards, so this says *this project is over*, never *you are being
+     * discarded*. Leave the object usable: whatever is released here has to be reacquired on demand.
+     *
+     * <p><b>Throwing is contained but not free.</b> The host catches and reports, then carries on binding the
+     * next project — a plugin must not be able to prevent one from opening. What it cannot do is finish
+     * releasing on the plugin's behalf, so an exception thrown halfway through leaks whatever was left.
+     */
+    default void projectClosing() {
     }
 
 }
