@@ -1,11 +1,10 @@
 package com.botmaker.plugin.api.authoring;
 
 import com.botmaker.plugin.api.value.Range;
+import com.botmaker.plugin.api.value.ValueCatalog;
 import com.botmaker.plugin.api.value.ValueChoice;
+import com.botmaker.plugin.api.value.ValueType;
 import com.botmaker.plugin.api.value.Visibility;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -50,7 +49,6 @@ import java.util.stream.Stream;
  * @param popupCheck  whether the driver dismisses popups before entering it
  * @param id          the stable identity a rename does not change; blank ⇒ {@code name}
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record ActivityModel(String name, boolean enabled, String description, List<String> outcomes,
                             Boolean goHome, Boolean popupCheck, String id) {
 
@@ -112,9 +110,8 @@ public record ActivityModel(String name, boolean enabled, String description, Li
      * {@link Visibility#EDITOR_ONLY} because whoever runs the bot is already offered every activity's own
      * switch; a second one under a tag heading is the same flag twice.
      */
-    @JsonIgnore
     public VariableModel enabledVariable() {
-        return new VariableModel(name, ValueChoice.of(ValueType.of("YES_NO").label("Yes / no").group("Basics").source("boolean").boxed("Boolean").primitive().closedSet().build()),
+        return new VariableModel(name, ValueChoice.of(ValueType.of(ValueCatalog.FLAG_ID).build()),
                 List.of(Boolean.toString(enabled)), description, name, Visibility.EDITOR_ONLY,
                 List.of(), Range.NONE, com.botmaker.plugin.api.ParameterGroup.DEFAULT_ID);
     }
@@ -166,7 +163,6 @@ public record ActivityModel(String name, boolean enabled, String description, Li
      * file that declares one must not emit it twice. Only {@code NEXT} is then re-added, because only
      * {@code NEXT} is an enum constant.
      */
-    @JsonIgnore
     public List<String> allOutcomes() {
         return Stream.concat(Stream.of(FlowEdgeModel.NEXT_OUTCOME), outcomes.stream()
                 .filter(o -> !FlowEdgeModel.NEXT_OUTCOME.equals(o))
@@ -181,7 +177,6 @@ public record ActivityModel(String name, boolean enabled, String description, Li
      * <em>finished</em>, and this is the one for it never having run. It is the single source of the card's
      * output ports, so the ports and the wires an editor is allowed to keep cannot drift.
      */
-    @JsonIgnore
     public List<String> flowPorts() {
         return Stream.concat(allOutcomes().stream(), Stream.of(FlowEdgeModel.DISABLED_OUTCOME)).toList();
     }

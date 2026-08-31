@@ -1,7 +1,5 @@
 package com.botmaker.plugin.api.authoring;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * One wire in the flow: "when {@code from} finishes reporting {@code outcome}, {@code to} runs next".
@@ -15,7 +13,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * @param to      target activity name — the one that runs next
  * @param outcome the source outcome this wire is for; blank ⇒ {@link #NEXT_OUTCOME}
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record FlowEdgeModel(String from, String to, String outcome) {
 
     /**
@@ -58,13 +55,11 @@ public record FlowEdgeModel(String from, String to, String outcome) {
     }
 
     /** The outcome constant this wire routes, resolving blank to {@link #NEXT_OUTCOME}. */
-    @JsonIgnore
     public String outcomeOrNext() {
         return outcome.isBlank() ? NEXT_OUTCOME : outcome;
     }
 
     /** True when this is the plain "finished, carry on" wire rather than one for a named outcome. */
-    @JsonIgnore
     public boolean isNext() {
         return outcome.isBlank() || NEXT_OUTCOME.equals(outcome);
     }

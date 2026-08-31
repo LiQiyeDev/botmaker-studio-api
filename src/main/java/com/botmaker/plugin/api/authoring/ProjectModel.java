@@ -1,7 +1,5 @@
 package com.botmaker.plugin.api.authoring;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
@@ -34,7 +32,6 @@ import java.util.List;
  * @param goHomeByDefault whether a newly added activity starts with {@link ActivityModel#goHome()} ticked;
  *                        boxed for the same reason as that field — absent must mean {@code true}
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record ProjectModel(List<ActivityModel> activities, List<VariableModel> variables, FlowModel flow,
                            List<PresetModel> presets, Boolean goHomeByDefault) {
 
@@ -67,7 +64,6 @@ public record ProjectModel(List<ActivityModel> activities, List<VariableModel> v
     }
 
     /** True when there is nothing to generate from. */
-    @JsonIgnore
     public boolean isEmpty() {
         return activities.isEmpty() && variables.isEmpty();
     }
@@ -112,7 +108,6 @@ public record ProjectModel(List<ActivityModel> activities, List<VariableModel> v
      * enable flag ({@link #activityFlags()} spans orphans) and its stub, because wiring it up is one drag
      * away.
      */
-    @JsonIgnore
     public List<ActivityModel> orderedActivities() {
         if (flow.isEmpty()) return activities;
         java.util.Map<String, ActivityModel> byName = new java.util.LinkedHashMap<>();
@@ -130,7 +125,6 @@ public record ProjectModel(List<ActivityModel> activities, List<VariableModel> v
      * project's variables. The names here are exactly the generated field names — but <b>not</b> the class
      * they are declared on, which since the two files split is two answers and no longer one constant.
      */
-    @JsonIgnore
     public List<VariableModel> allVariables() {
         List<VariableModel> all = new java.util.ArrayList<>(activityFlags());
         all.addAll(variables);
@@ -142,7 +136,6 @@ public record ProjectModel(List<ActivityModel> activities, List<VariableModel> v
      * what it holds. Every activity, not only the reachable ones: an orphan keeps its flag, because its
      * stub's {@code isEnabled()} names the field either way.
      */
-    @JsonIgnore
     public List<VariableModel> activityFlags() {
         return activities.stream().map(ActivityModel::enabledVariable).toList();
     }
@@ -151,7 +144,6 @@ public record ProjectModel(List<ActivityModel> activities, List<VariableModel> v
      * The variables whoever runs the bot is offered, grouped under their tag headings and in declaration
      * order within each — so a runner shows "Mining" and "General" rather than one flat list.
      */
-    @JsonIgnore
     public java.util.Map<String, List<VariableModel>> sharedVariables() {
         java.util.Map<String, List<VariableModel>> byTag = new java.util.LinkedHashMap<>();
         for (VariableModel v : variables) {
@@ -167,13 +159,11 @@ public record ProjectModel(List<ActivityModel> activities, List<VariableModel> v
      * is the partition the emitter walks: one call per group, one file per call. A blank {@code groupId} is
      * the default plugin's, which is every variable in every project written before groups existed.
      */
-    @JsonIgnore
     public List<VariableModel> variablesIn(String groupId) {
         return variables.stream().filter(v -> v.isIn(groupId)).toList();
     }
 
     /** The groups this project actually has variables in, in the order they first appear in the file. */
-    @JsonIgnore
     public List<String> variableGroups() {
         return variables.stream().map(VariableModel::group).distinct().toList();
     }

@@ -2,14 +2,11 @@ package com.botmaker.plugin.api.authoring;
 
 import com.botmaker.plugin.api.ParameterGroup;
 import com.botmaker.plugin.api.value.Range;
+import com.botmaker.plugin.api.value.ValueCatalog;
 import com.botmaker.plugin.api.value.ValueChoice;
 import com.botmaker.plugin.api.value.ValueShape;
+import com.botmaker.plugin.api.value.ValueType;
 import com.botmaker.plugin.api.value.Visibility;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
@@ -44,14 +41,17 @@ import java.util.List;
  *                    correctly. Unlike {@link #tag()}, this <em>is</em> a scope: names are unique within a
  *                    group, not across the project.
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record VariableModel(String name, ValueChoice type, List<String> value, String description,
                             String tag, Visibility visibility, List<String> options, Range bounds,
                             String group) {
 
     public VariableModel {
         if (name == null) name = "";
-        if (type == null) type = ValueChoice.of(ValueType.of("TEXT").label("Text").group("Basics").source("String").build());
+        // A stored field with no type is one older than the vocabulary, and text is the reading it has
+        // always had — ValueCatalog.type(null) says the same thing. The id is all this needs: a ValueType's
+        // identity *is* its id, and the label, the group and the Java type it emits belong to whichever
+        // plugin registered TEXT, arriving when a catalog is merged.
+        if (type == null) type = ValueChoice.of(ValueType.of(ValueCatalog.TEXT_ID).build());
         value = value == null ? List.of() : List.copyOf(value);
         if (description == null) description = "";
         if (tag == null) tag = "";
@@ -71,25 +71,21 @@ public record VariableModel(String name, ValueChoice type, List<String> value, S
     }
 
     /** The single value, for the types that have exactly one; the first item of a list. */
-    @JsonIgnore
     public String singleValue() {
         return value.isEmpty() ? "" : value.getFirst();
     }
 
     /** True when whoever runs the bot is offered this variable. */
-    @JsonIgnore
     public boolean isPublic() {
         return visibility == Visibility.PUBLIC;
     }
 
     /** The tag this is filed under, or {@link #GENERAL} when it carries none. */
-    @JsonIgnore
     public String tagOrGeneral() {
         return tag.isBlank() ? GENERAL : tag;
     }
 
     /** What an editor calls this — its {@link #description()} when it has one, else its {@link #name()}. */
-    @JsonIgnore
     public String displayLabel() {
         return description.isBlank() ? name : description;
     }
@@ -136,7 +132,6 @@ public record VariableModel(String name, ValueChoice type, List<String> value, S
     }
 
     /** True when this variable belongs to {@code groupId}, reading a blank group as the default plugin's. */
-    @JsonIgnore
     public boolean isIn(String groupId) {
         return group.equals(groupId == null ? ParameterGroup.DEFAULT_ID : groupId.trim());
     }
@@ -152,17 +147,16 @@ public record VariableModel(String name, ValueChoice type, List<String> value, S
      * <p>So: a stored {@code ANY_OF} keeps its shape when there is a set behind it — the author's options, or
      * the type's own constants for a closed set like {@code Direction} — and becomes
      * {@link ValueShape#OPEN_LIST} when there is not.
+     *
+     * <p><b>Nothing in this module calls it, and that is not dead code.</b> It is the factory a parser binds
+     * to instead of the canonical constructor, named from outside — the SDK's
+     * {@code internal.authoring.AuthoringMixins} marks it as Jackson's creator. The mark cannot live here:
+     * these records are the plugin contract, whose one dependency is {@code javafx-controls} at
+     * {@code provided}, so a JSON annotation on one of them would impose that library on every plugin.
      */
-    @JsonCreator
-    static VariableModel fromWire(@JsonProperty("name") String name,
-                                  @JsonProperty("type") ValueChoice type,
-                                  @JsonProperty("value") List<String> value,
-                                  @JsonProperty("description") String description,
-                                  @JsonProperty("tag") String tag,
-                                  @JsonProperty("visibility") Visibility visibility,
-                                  @JsonProperty("options") List<String> options,
-                                  @JsonProperty("bounds") Range bounds,
-                                  @JsonProperty("group") String group) {
+    static VariableModel fromWire(String name, ValueChoice type, List<String> value, String description,
+                                  String tag, Visibility visibility, List<String> options, Range bounds,
+                                  String group) {
         return new VariableModel(name, listShapeOf(type, options), value, description, tag, visibility,
                 options, bounds, group);
     }

@@ -1,9 +1,5 @@
 package com.botmaker.plugin.api.authoring;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +14,6 @@ import java.util.Optional;
  * @param maxSteps    the budget of node transitions per run; {@code <= 0} ⇒ {@link #DEFAULT_MAX_STEPS}
  * @param stepDelayMs the pause between two activities; {@code < 0} ⇒ the default, {@code 0} ⇒ no pause
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record FlowModel(List<FlowNodeModel> nodes, List<FlowEdgeModel> edges, String start, int maxSteps,
                         int stepDelayMs) {
 
@@ -57,19 +52,18 @@ public record FlowModel(List<FlowNodeModel> nodes, List<FlowEdgeModel> edges, St
      * before the field existed has no such key, and Jackson would bind a missing {@code int} to 0 — silently
      * turning every pre-existing flow into a zero-delay one, which is exactly the runaway the field exists to
      * prevent. Absent means "take the default"; an explicit {@code 0} means the user asked for no pause.
+     *
+     * <p>Nothing in this module calls it — the SDK's {@code internal.authoring.AuthoringMixins} marks it as
+     * Jackson's creator from outside, because the contract carries no JSON annotations. See
+     * {@link VariableModel#fromWire} for the same note at length.
      */
-    @JsonCreator
-    static FlowModel fromWire(@JsonProperty("nodes") List<FlowNodeModel> nodes,
-                              @JsonProperty("edges") List<FlowEdgeModel> edges,
-                              @JsonProperty("start") String start,
-                              @JsonProperty("maxSteps") int maxSteps,
-                              @JsonProperty("stepDelayMs") Integer stepDelayMs) {
+    static FlowModel fromWire(List<FlowNodeModel> nodes, List<FlowEdgeModel> edges, String start,
+                              int maxSteps, Integer stepDelayMs) {
         return new FlowModel(nodes, edges, start, maxSteps,
                 stepDelayMs == null ? DEFAULT_STEP_DELAY_MS : stepDelayMs);
     }
 
     /** True when nothing has been wired — a caller should fall back to plain declaration order. */
-    @JsonIgnore
     public boolean isEmpty() {
         return edges.isEmpty();
     }

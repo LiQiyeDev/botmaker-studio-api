@@ -1,6 +1,5 @@
 package com.botmaker.plugin.api.authoring;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * One card on the flow canvas: which activity it is, and where it sits.
@@ -18,7 +17,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * @param x        canvas x of the node's top-left, in unscaled canvas coordinates
  * @param y        canvas y of the node's top-left, in unscaled canvas coordinates
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record FlowNodeModel(String activity, double x, double y) {
 
     public FlowNodeModel {
