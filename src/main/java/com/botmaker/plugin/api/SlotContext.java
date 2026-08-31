@@ -98,6 +98,21 @@ public interface SlotContext extends ValueContext {
     default void replaceEnclosingCall(String javaExpression, String... importsNeeded) {
     }
 
+    /**
+     * The run of sibling slots this one belongs to, or {@code null} when it stands alone.
+     *
+     * <p>Non-null only where the author writes a value as several arguments of one call — three pictures to
+     * match any of — and the host is willing to let one editor rewrite all of them. Every other slot, which
+     * is nearly all of them, answers {@code null}, and an editor that never asks is unaffected.
+     *
+     * <p>A method rather than a second context type, for the reason {@link ValueContext#asSlot()} is one:
+     * the question reads as a question in plugin code, and an editor asks it only when it can actually use
+     * the answer. {@code default} so an older host answers "no run" instead of throwing.
+     */
+    default SlotRun run() {
+        return null;
+    }
+
     /** Always {@code this}: a slot is its own call site. */
     @Override
     default SlotContext asSlot() {

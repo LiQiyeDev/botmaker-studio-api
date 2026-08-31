@@ -5,6 +5,33 @@ reasoning.
 
 ## Done
 
+### 2026-08-31 — a run of slots, and a picture for a declared choice
+
+Two additions, both `default`, both forced by the same editor: the image-template **group** picker, which
+the port of the template editors could not carry because its chip row is only partly a slot editor. Its
+three callers are the `ImageTemplateGroup.of(…)` slot, an image **varargs** run
+(`Matches.hasAny(a, b, c)`) and the `Matches` switch, which narrows the offered set to what the enclosing
+find call can produce. Only the first is one argument of one call.
+
+- **`SlotRun`, reached through `SlotContext.run()`** (`null` for a slot that stands alone, which is nearly
+  all of them). `elements()` are the run's Java expressions in order; `replace(List<String>, String...)`
+  writes the whole run, because an editor that can only write inside its own argument can change an element
+  and never add or remove one. `minimum()` and `allowed()` are the host's two narrowings — how few elements
+  the surrounding code still compiles with, and the only element sources it will still accept.
+- **`allowed()` is element *source*, not decoded values**, and that is the part worth remembering. Studio's
+  own narrowing decoded the enclosing group into template paths, which is the host reading a plugin's
+  vocabulary out of a plugin's expressions. Listing the arguments of a call is syntactic and needs no such
+  knowledge; the plugin decodes them itself. The general rule: when the host has to describe a plugin's
+  values, it describes them as the text they are written as.
+- **`SlotEditor.preview(ValueContext)`**, `default null` — a small, non-interactive picture of one value,
+  for the one place the host *shows* a value without editing it: beside a declared choice. Not a sixth
+  contribution surface — it reuses `matches()`, and its default is exactly what a plugin-registered type
+  gets today, so nothing is lost by not implementing it. The second `SlotEditor.of` overload takes it.
+
+The host side and the editors that consume both land with the template-editor port; `TestContexts` gained
+`withRun` in the same pass, so a plugin author can exercise a run editor — including that a `replace` below
+`minimum()` is refused — without a running Studio. Toolkit tests 39 → 45.
+
 ### 2026-08-30 — a second plugin interface was built and withdrawn the same day
 
 `CompanionPlugin` — `id`, `displayName`, `toolbarItems`, `projectClosing` — plus `ThemeTokens` and

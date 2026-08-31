@@ -17,6 +17,20 @@ is allowed to make. Additions arrive as `default` methods.
 
 ## [Unreleased]
 
+- **Added — `SlotRun`, reached through `SlotContext.run()`.** Several sibling slots edited as one, for a
+  value the author writes as a *run* of arguments — three pictures to match any of. `elements()` are the
+  run's Java expressions in order and `replace(List<String>, String...)` writes the whole run, because an
+  editor confined to one argument can change an element and never add or remove one. `minimum()` and
+  `allowed()` are the host's two narrowings: how few elements the surrounding code still compiles with, and
+  the only element sources it will still accept. **Both are opaque Java source** — the host says these
+  arguments are one list and what the code around them permits, and the plugin, which knows what the
+  strings mean, decodes them itself. `null` for a slot that stands alone, which is nearly every slot.
+- **Added — `SlotEditor.preview(ValueContext)`**, `default null`, and a second `SlotEditor.of` overload
+  taking it. A small, non-interactive picture of one value, for the one place the host *shows* a value
+  without editing it: beside a declared choice, in the list an author picks from. `create` is wrong there
+  and so is plain text whenever the stored string is a reference rather than the value — a template name is
+  not a picture. Not a new contribution surface: it reuses `matches()`, and its default is exactly what a
+  plugin-registered type gets today.
 - **Added — `Runs`, reached through `StudioServices.runs()`, and `StudioServices.status(String)`.** The open
   project's bot as a running process: `start`, `stop`, `isRunning`, `pid`, and listeners for run state and
   for telemetry. Every member is host-only for the plainest reason on that interface — the host compiled the

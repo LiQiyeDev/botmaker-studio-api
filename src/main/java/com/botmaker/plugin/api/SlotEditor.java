@@ -37,8 +37,39 @@ public interface SlotEditor {
      */
     Node create(ValueContext ctx);
 
+    /**
+     * A small, non-interactive picture of the value in {@code ctx}, or {@code null} for none.
+     *
+     * <p>The host shows a value in one more place than it edits one: beside a <em>declared choice</em>, in
+     * the list an author picks from. There the value is not being edited at all, so {@link #create} is the
+     * wrong thing to call — it would hand back a live control in a list of options — and yet plain text is
+     * the wrong answer too whenever the stored string is a <b>reference</b> rather than the value. A
+     * template name is not a picture and {@code #3A7F2B} is not a colour, so offering the author a gallery
+     * to pick a choice from and then listing what they picked as raw text puts the decoding back on the
+     * person the choices exist for.
+     *
+     * <p>The context is read-only: {@link ValueContext#set} does nothing and {@link ValueContext#asSlot()}
+     * is {@code null}, because a declared choice has no call site and nothing to write back to. Build a
+     * label, a swatch or a thumbnail; do not build anything that expects to be clicked.
+     *
+     * <p>{@code default null} — which is exactly today's behaviour for every type the host does not answer
+     * itself, so an editor that does not implement it costs its type nothing it already had.
+     */
+    default Node preview(ValueContext ctx) {
+        return null;
+    }
+
     /** An editor from two lambdas, for the common case where neither half needs state. */
     static SlotEditor of(Predicate<ValueContext> matches, Function<ValueContext, Node> create) {
+        return of(matches, create, null);
+    }
+
+    /**
+     * An editor from two lambdas plus a {@link #preview}, for a type whose stored form is a reference the
+     * author should not have to decode.
+     */
+    static SlotEditor of(Predicate<ValueContext> matches, Function<ValueContext, Node> create,
+                         Function<ValueContext, Node> preview) {
         return new SlotEditor() {
             @Override
             public boolean matches(ValueContext ctx) {
@@ -48,6 +79,11 @@ public interface SlotEditor {
             @Override
             public Node create(ValueContext ctx) {
                 return create.apply(ctx);
+            }
+
+            @Override
+            public Node preview(ValueContext ctx) {
+                return preview == null ? null : preview.apply(ctx);
             }
         };
     }

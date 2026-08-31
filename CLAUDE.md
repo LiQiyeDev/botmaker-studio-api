@@ -117,6 +117,35 @@ does, naming no type of anyone's. Compare it with `Capture.SourceChoice`, which 
 editor needed it and which named `CaptureSource`'s concept: *a real editor needed it* is not the test, and
 never was.
 
+**Two more passed it on 2026-08-31, and both were forced by one editor the port could not carry** — the
+image-template *group* picker, whose chip row turned out not to be a slot editor at all.
+
+**`SlotContext.run()` and `SlotRun`** — several sibling slots edited as one. A `SlotContext` is one argument
+of one call, which is right for almost everything and wrong for a value the author writes as a **run** of
+arguments: three pictures to match any of, four keys to try in order. An editor confined to a single
+argument can change one element and can never add or remove one, so it has to hand back the whole run —
+`replace(List<String>, String...)`. It passes on both halves. **Everything in it is opaque Java source**:
+`elements()` are the expressions as they stand, and even the narrowing is expressed that way. And what the
+host contributes is what only the host has — that these arguments *are* one list, plus two facts about the
+code around them: `minimum()`, how few elements the surrounding source still compiles with (a guarded branch
+needs one), and `allowed()`, the only element sources it will still accept.
+
+**`allowed()` returning source rather than decoded values is the load-bearing detail.** Studio's own version
+of this narrowing decoded the enclosing group into template *paths* — which meant the host reading a
+plugin's vocabulary out of a plugin's expressions. Element sources are a purely syntactic answer: the host
+lists the arguments of the list a branch is narrowing against without knowing what any of them mean, and the
+plugin, which does know, compares or parses them itself. **When the host must describe a plugin's values,
+describe them as the text they are written as.**
+
+**`SlotEditor.preview(ValueContext)`** — a small, non-interactive picture of one value, `default null`. The
+host shows a value in one more place than it edits one: beside a **declared choice**, in the list an author
+picks from. `create` is wrong there (a live control in a list of options) and plain text is wrong too
+wherever the stored string is a *reference* rather than the value — a template name is not a picture,
+`#3A7F2B` is not a colour — because offering a gallery to pick a choice from and then listing the result as
+raw text puts the decoding back on the person the choices exist for. It is not a sixth contribution surface:
+it reuses the matcher `matches()` already provides, and its default is exactly today's behaviour for every
+type the host does not answer itself, so a type costs nothing by not implementing it.
+
 ## The three rules that are easy to break
 
 **1. Every method but `StudioPlugin.id()` is `default`, and stays that way.** A bot's source can be
