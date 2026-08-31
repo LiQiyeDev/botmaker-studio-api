@@ -37,8 +37,14 @@ public interface StudioServices {
     /** Applying the host's current look to a window, dialog or scene a plugin creates. */
     Theme theme();
 
-    /** Grabbing pixels: a screen region, a colour, a frame of the target application. */
-    Capture capture();
+    // capture() was here until 2026-08-31, serving a Capture with selectRegion, pickPoint, sampleColor,
+    // grabFrame and toFxImage. Its defence was that only a host can put a surface over its own windows —
+    // true, and not the point. A full-screen overlay over a running game, asking the user to point at
+    // something in it, is about what a bot sees from end to end, and the editor's part in it was only ever
+    // that the editor was written first. So a plugin draws its own, over pixels it grabs itself through
+    // botmaker-shared, and the toolkit's screen-pick widgets take theirs from ScreenPicks. The last member,
+    // grabFrame, was capture-target vocabulary written so as not to say the word: see Capture's own history
+    // in the deleted file, and the 2026-08-27 Assets/chooseSource reversal recorded above.
 
     /** Native file and directory choosers, and the window a plugin's own dialog should be owned by. */
     Dialogs dialogs();
