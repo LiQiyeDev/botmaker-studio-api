@@ -146,6 +146,32 @@ raw text puts the decoding back on the person the choices exist for. It is not a
 it reuses the matcher `matches()` already provides, and its default is exactly today's behaviour for every
 type the host does not answer itself, so a type costs nothing by not implementing it.
 
+**And one passed it on 2026-09-01, which is the clearest statement of the rule so far because the thing it
+splits was one class in the editor for a year.** **`StudioServices.sources()`**, returning a `Sources`:
+`find(List<String> needles)` and `replace(Map<String,String>, historyLabel, reviewNote)` over the bot's own
+Java.
+
+Studio's `TemplateReferences` renamed an image template and carried every block that named it. Half of that is
+host work no plugin can do — the open buffers are editor state, the walk knows which files the bot owns, and
+`@NeedsReview` plus the Project History snapshot are the host's own undo model. The other half is that
+`ore.png` is spelled `Templates.ORE`, which is `ImageTemplate`'s concept and **nobody else's** — so the host
+was carrying one plugin's vocabulary, and a second plugin renaming a concept of its own had no way to ask for
+the same service. Cutting it at this interface leaves each side with what is actually theirs. The picture
+library moved to the SDK plugin the same day, and it was the last thing in Studio that knew what a picture is
+called.
+
+**The needle is the part to copy.** It is a **sequence of Java tokens**, matched as tokens and never as text:
+`Templates.ORE` matches `Templates . ORE` and does not match `Templates.OREX` or `MyTemplates.ORE`. That is a
+fact about Java, which is why it names nobody's concept — compare `Assets`, which had to say the word
+*picture*. Not a regex, deliberately: a regex hands every plugin the power to corrupt a user's source with a
+bad pattern, and pins one flavour of regex semantics into a surface only a major release may break. And text
+rather than an AST, which is rule 3 above arriving from the other direction — the file a rename most needs to
+reach is the one the user has open and half-edited, and it does not parse.
+
+`Use` is **host-constructed only**, and the record says so in its own javadoc: a plugin that had called its
+canonical constructor would take a `NoSuchMethodError` the day a component is added. That is why replacements
+are a `Map<String,String>` and not a `Replacement` record — see `docs/refactor/25-compatibility.md` §2.
+
 ## The three rules that are easy to break
 
 **1. Every method but `StudioPlugin.id()` is `default`, and stays that way.** A bot's source can be

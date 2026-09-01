@@ -17,6 +17,25 @@ is allowed to make. Additions arrive as `default` methods.
 
 ## [Unreleased]
 
+- **Added — `Sources`, reached through `StudioServices.sources()`.** Find and repoint a token sequence across
+  the bot's own Java: `find(List<String>)` answers where a needle occurs, `replace(Map, historyLabel,
+  reviewNote)` rewrites it in the open buffer *and* on disk and says which files changed. `Sources.NONE` is
+  the total no-op a host with no project answers with, so a plugin never null-checks and never asks whether
+  rewriting is supported.
+
+  **Needles are matched as tokens, never as text**: `Templates.ORE` matches `Templates . ORE` and does not
+  match `Templates.OREX` or `MyTemplates.ORE`; `"images/ore.png"` matches that whole string literal and
+  nothing inside a longer one. Tokens rather than a regex on purpose — a regex would hand every plugin the
+  power to corrupt a user's source with a bad pattern, and would pin one flavour of regex semantics into a
+  surface only a Studio major release may break. Text rather than an AST, equally on purpose: the file that
+  most needs a rename to reach it is the one the user has open and half-edited, which does not parse.
+
+  It passes the host-only test on every part: the open buffers are editor state, the walk knows which files
+  the bot owns, and the review mark and the history snapshot are the host's own undo model — while what to
+  search for stays entirely with whoever owns the thing being renamed. `Use` is **host-constructed only**, so
+  it may grow a component later without the `NoSuchMethodError` every already-compiled plugin would take from
+  a changed canonical constructor; for the same reason replacements are a `Map<String,String>` rather than a
+  record a plugin would call a constructor on.
 - **Added — `SlotRun`, reached through `SlotContext.run()`.** Several sibling slots edited as one, for a
   value the author writes as a *run* of arguments — three pictures to match any of. `elements()` are the
   run's Java expressions in order and `replace(List<String>, String...)` writes the whole run, because an
