@@ -111,9 +111,25 @@ public record ActivityModel(String name, boolean enabled, String description, Li
      * switch; a second one under a tag heading is the same flag twice.
      */
     public VariableModel enabledVariable() {
-        return new VariableModel(name, ValueChoice.of(ValueType.of(ValueCatalog.FLAG_ID).build()),
+        return new VariableModel(name, ValueChoice.of(flagType()),
                 List.of(Boolean.toString(enabled)), description, name, Visibility.EDITOR_ONLY,
                 List.of(), Range.NONE, com.botmaker.plugin.api.ParameterGroup.DEFAULT_ID);
+    }
+
+    /**
+     * The flag type, spelled out rather than looked up.
+     *
+     * <p>{@code ValueType.of(FLAG_ID).build()} stood here and threw — {@code build()} refuses a type that
+     * declares no source spelling, so every caller of {@link ProjectModel#activityFlags()} failed. It is
+     * spelled here rather than fetched from a catalog because this record has no catalog to fetch from, and
+     * because {@link ValueCatalog#FLAG_ID} is one of the two ids the contract declares as its own floor:
+     * saying that a flag is written {@code boolean} in Java is a statement about the language, not about any
+     * plugin's vocabulary. A plugin registering {@code YES_NO} agrees with this by construction — a
+     * {@link ValueType}'s identity is its id, never the object.
+     */
+    private static ValueType flagType() {
+        return ValueType.of(ValueCatalog.FLAG_ID)
+                .source("boolean").boxed("Boolean").primitive().closedSet().build();
     }
 
     // ---- copies -----------------------------------------------------------------------------------------
