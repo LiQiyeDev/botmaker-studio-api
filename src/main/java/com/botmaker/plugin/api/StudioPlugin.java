@@ -30,9 +30,12 @@ import java.util.List;
  *       owns, and the generated class each one's values become fields of.</li>
  *   <li><b>toolbar</b> &mdash; {@link #toolbarItems()}: buttons, contributed as data. The host owns the
  *       grouping, the order, the packing and the overflow menu; a plugin owns what a press does.</li>
+ *   <li><b>source seeds</b> &mdash; {@link #sourceSeeds()}: what a <em>fresh</em> value of one of this
+ *       plugin's types looks like, when the host's generic {@code new T()} would not compile. Data, like
+ *       the toolbar and for the same reason — see {@link SourceSeed}.</li>
  * </ul>
  *
- * <p>{@link #projectClosing()} is not a sixth surface — it contributes nothing. It is the one thing a plugin
+ * <p>{@link #projectClosing()} is not a seventh surface — it contributes nothing. It is the one thing a plugin
  * cannot find out for itself: that the project it opened an operating-system resource for is gone.
  *
  * <p><b>Panels are deliberately not a surface.</b> A plugin contributes to the editor; it does not
@@ -83,6 +86,24 @@ public interface StudioPlugin {
      * slot holding a project variable stays a variable no matter what a plugin claims about its type.
      */
     default List<SlotEditor> slotEditors() {
+        return List.of();
+    }
+
+    /**
+     * What a fresh value of one of this plugin's types looks like in source, for the types the host's
+     * generic {@code new T()} cannot fill — an interface, a record with required components, or a type whose
+     * meaning is a named constant.
+     *
+     * <p>Asked <b>every time a slot is seeded</b>, never cached, so a seed may read the project's live state.
+     * The host consults its own seeds for the JDK types first, then every plugin's in load order, and falls
+     * back to {@code new T()}; a seed whose expression will not parse is skipped rather than written.
+     *
+     * <p>{@code default} for the reason every method here but {@code id()} is: an older plugin contributes
+     * none and the host seeds exactly as it did before.
+     *
+     * @see SourceSeed
+     */
+    default List<SourceSeed> sourceSeeds() {
         return List.of();
     }
 
