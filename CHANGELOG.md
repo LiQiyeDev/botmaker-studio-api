@@ -15,7 +15,7 @@ be read against it:** a plugin's compiled `.class` files cannot be rewritten by 
 that an already-built plugin cannot survive is a **major** change, and one that only a Studio major release
 is allowed to make. Additions arrive as `default` methods.
 
-## [0.1.0] — 2026-09-02
+## [Unreleased]
 
 First release. **`0.x` on purpose**: the contract is still in development, there are no third-party plugins,
 and the one implementor — the SDK — is rebuilt from the same reactor on every change. The never-grow-a-record
