@@ -5,6 +5,34 @@ reasoning.
 
 ## Done
 
+### 2026-09-02 — the gate that published nothing, and the baseline that gated nothing
+
+v0.0.1 — this module's first tag ever — produced **no artifact on JitPack at all**, and took
+`botmaker-sdk` v1.1.1 down behind it (`Could not find artifact
+com.github.LiQiyeDev:botmaker-studio-api:jar:v0.0.1`). Two separate faults, both in the japicmp block.
+
+- **The plugin would not load on JitPack's Maven.** `japicmp-maven-plugin:0.23.1` declares a Maven 3.6.3
+  prerequisite and JitPack's builder runs an older one, so the build died with `The plugin ... requires
+  Maven version 3.6.3` — and it died at plugin **load**, before any configuration was read, which is why
+  the `<skip>` flag the pom already had could never have avoided it. japicmp now lives in an **`api-gate`
+  profile** activated by the *absence* of `botmaker.japicmp.skip`, and `jitpack.yml` passes that property.
+  `mvn verify` here and in CI is unchanged.
+  - The activation is property-negation rather than `<activeByDefault>` deliberately: Maven cancels every
+    `activeByDefault` profile as soon as any profile is named on the command line, so a build that named
+    an unrelated profile would silently lose the gate. (`botmaker-sdk` has a `pilot` profile and would
+    have hit exactly that.)
+  - Skipping it on JitPack costs nothing real, and the reasoning is the one `-DskipTests` in that file has
+    always used: JitPack builds an artifact **from a tag that already exists**, so a gate there can only
+    break the publish — it cannot prevent the change. The refusal that matters is `mvn verify` in this
+    repository's CI, before the tag.
+- **The baseline named a tag that has never existed.** `botmaker.japicmp.baseline` was `v1.0.0`, a
+  placeholder from before the module had a release, and the instruction in `CLAUDE.md` to *"set it to the
+  previous tag in every release commit from the first one onward"* was never once carried out. With
+  `ignoreMissingOldVersion` — which exists so a first release is not refused for a reason its author cannot
+  act on — that is not a strict gate but a no-op reporting success. Worse, `v1.0.0` sorts **above** every
+  tag this module will have for a long time. It is `v0.0.1` now, and the umbrella's `release.sh` bumps it
+  in each release commit (`bump_japicmp_baseline`), never backwards.
+
 ### 2026-08-31 — a run of slots, and a picture for a declared choice
 
 Two additions, both `default`, both forced by the same editor: the image-template **group** picker, which

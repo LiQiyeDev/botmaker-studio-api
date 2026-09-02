@@ -35,11 +35,17 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javafx.version>21</javafx.version>
         <junit.version>5.10.2</junit.version>
-        <!-- The published tag japicmp compares this build against. This module has never been released, so
-             the baseline does not resolve yet and ignoreMissingOldVersion below reports rather than fails;
-             set it to the previous tag in every release commit from the first one onward. Offline builds
-             that have never fetched it pass -Dbotmaker.japicmp.skip=true. -->
-        <botmaker.japicmp.baseline>v1.0.0</botmaker.japicmp.baseline>
+        <!-- The published tag japicmp compares this build against. Bumped automatically now, by
+             release.sh's bump_japicmp_baseline, in each release commit — it was `v1.0.0` until 2026-09-02,
+             a placeholder for the first release this module had not had yet, and the instruction to move
+             it by hand "in every release commit from the first one onward" was never once carried out. A
+             baseline naming a tag that does not exist is not a strict gate: ignoreMissingOldVersion (which
+             is there so a first release is not refused for a reason its author cannot act on) makes it
+             report and pass. Worse, `v1.0.0` sorts ABOVE every tag this module will have for a long time,
+             so the automation's never-move-backwards rule would have frozen it there.
+             Offline builds that have never fetched the baseline pass -Dbotmaker.japicmp.skip=true, which
+             also deactivates the api-gate profile below. -->
+        <botmaker.japicmp.baseline>v0.0.1</botmaker.japicmp.baseline>
         <botmaker.japicmp.skip>false</botmaker.japicmp.skip>
     </properties>
 
