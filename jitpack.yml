@@ -1,5 +1,5 @@
 jdk:
-  - openjdk21
+  - openjdk25
 install:
   # No -D injection and no .deps.env, unlike botmaker-session and botmaker-sdk: this module pins no BotMaker
   # upstream. Its only dependency is javafx-controls at a literal version in `provided` scope, so the

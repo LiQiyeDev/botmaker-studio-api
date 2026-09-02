@@ -5,6 +5,50 @@ reasoning.
 
 ## Done
 
+### 2026-09-02 — JDK 25 LTS and JavaFX 25 across all eleven repositories
+
+The whole constellation moves from Java 21 to **Java 25 LTS**, and from JavaFX 21 to **25.0.4** — the newest
+patch of the matching LTS line, rather than the bare GA the old pin used. `botmaker-pilot` stays on 17: that
+is the Android Gradle toolchain and has nothing to do with this.
+
+**The risk was JitPack, and it was settled before anything was touched.** Eight modules publish there and a
+bot resolves the SDK from it, so an image without a 25 JDK would have stopped the migration dead — the
+documented workaround being an SDKMAN install in `jitpack.yml`'s `before_install`, which is a per-module
+thing to maintain forever. It was proved on a throwaway **branch** build of this module (a branch build
+resolves as `<branch>-SNAPSHOT`, so no junk tag had to be cut and later lived with): JitPack reported
+`Setting java 25.0.2-open as default`, the build succeeded, and the published jar's class-file major version
+was **69** — Java 25, where 21 would have been 65. It genuinely compiled at 25 rather than silently at 21.
+No `before_install` is needed anywhere.
+
+**`maven.compiler.release` replaces `source`/`target` in all ten poms**, including the one the archetype
+generates. The difference is not cosmetic: `source`/`target` compile against whatever JDK is *running*, so on
+a maintainer's JDK 26 box a call into a method that exists in 26 and not in 25 compiles clean and throws
+`NoSuchMethodError` on a runner pinned to 25. `release` checks against 25's own platform API. It was safe to
+switch because nothing here compiles against a JDK-internal API — every `com.sun.*` import in the
+constellation is `com.sun.jna`, an ordinary library — and the only `--add-exports`/`--add-opens` are in
+Studio's *surefire* `argLine`, which `release` does not police.
+
+What moved, exhaustively: `jitpack.yml` × 8 → `openjdk25`; `maven.compiler.release` → 25 in ten poms;
+`javafx.version` → 25.0.4 in five, plus the archetype's literal `javafx-controls` version; `java-version:
+'25'` in fifteen workflow steps across eleven repositories, the plugin registry's `validate.yml` among them
+(it resolves and runs `botmaker-cli`, so it must not be older than the CLI's bytecode); and the two
+`testing/` Docker images, where `java-25-openjdk-devel` and `openjdk-25-jdk` both turned out to exist in
+Fedora 43 and Ubuntu 24.04 respectively — so the images keep their bases and needed no backports line or
+third-party JDK repository. The Fedora image's `FROM fedora:43` pin is kept but its *reason* is rewritten: it
+existed because F44 had dropped `java-21-openjdk`, and that constraint is simply gone now.
+
+**One thing is deliberately not proven yet: japicmp against a 25-compiled baseline.** The plugin loads and
+runs on 25, but both baselines (`v0.0.1` here, `v1.2.0` in the SDK) are currently unresolvable — one is the
+broken tag, one is unreleased — so `ignoreMissingOldVersion` makes it report and pass without ever parsing a
+major-69 class file. Whether japicmp 0.23.1's javassist can read one is answered by the first release with a
+working baseline, and the SDK's pom already records the neighbouring fact that its bundled Groovy cannot read
+Java 26 class files. Watch that on the next release rather than assuming it.
+
+**Studio's test suite fails 78 tests on this tree and failed exactly the same 78 before it** — verified by
+stashing the pom change and re-running: 1001 tests, 78 failures, 6 errors, both times. They are the
+fallout of Studio dropping its SDK dependency on 2026-09-02 (`SdkUpgradeServiceTest`, `SplitPointerTest`, the
+toolbar's missing Pilot item) and are not this change's. Every other module's suite passes on 25.
+
 ### 2026-09-02 — the gate that published nothing, and the baseline that gated nothing
 
 v0.0.1 — this module's first tag ever — produced **no artifact on JitPack at all**, and took

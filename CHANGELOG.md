@@ -15,6 +15,17 @@ be read against it:** a plugin's compiled `.class` files cannot be rewritten by 
 that an already-built plugin cannot survive is a **major** change, and one that only a Studio major release
 is allowed to make. Additions arrive as `default` methods.
 
+## [Unreleased]
+
+### Changed
+
+- **Compiled for Java 25 (LTS), against JavaFX 25.0.4.** A plugin compiling against this contract needs a
+  JDK 25 or newer; a host loading one needs a 25 runtime. This is a floor rather than a feature — nothing in
+  the contract changed shape — but it is the kind of floor that produces `UnsupportedClassVersionError` at
+  load rather than a compile error, so it is worth reading before upgrading. The poms say
+  `maven.compiler.release` now instead of `source`/`target`, which is what makes the platform API checked
+  rather than merely the bytecode level.
+
 ## [0.0.1] — 2026-09-02
 
 First release. **`0.x` on purpose**: the contract is still in development, there are no third-party plugins,
