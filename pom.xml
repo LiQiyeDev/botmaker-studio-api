@@ -85,55 +85,95 @@
                 <version>3.2.5</version>
             </plugin>
 
-            <!-- japicmp — the contract is binary-compatible with every plugin already compiled against it.
-
-                 A plugin's .class files cannot be rewritten by anyone, which is the whole reason this module
-                 is separate from the SDK, and the trap 25-compatibility.md lists under "not checked by
-                 anything" is the one this catches: adding a component to a public record changes its
-                 canonical constructor descriptor and throws NoSuchMethodError in every already-built plugin
-                 — source-compatible, binary-incompatible, and until now carried by a Javadoc sentence.
-
-                 Unconditional, which is what makes it legitimate where the SDK's August gate was not: that
-                 one had to tell an intended break from an accident and could not see the version. Here there
-                 is no legitimate break to distinguish — only a Studio major release may make one, and that
-                 is the release that edits this block. So no ignore list, no exemption annotation, no verdict
-                 file. No postAnalysisScript either: its bundled Groovy cannot read Java 26 class files. -->
-            <plugin>
-                <groupId>com.github.siom79.japicmp</groupId>
-                <artifactId>japicmp-maven-plugin</artifactId>
-                <version>0.23.1</version>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>cmp</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <oldVersion>
-                        <dependency>
-                            <groupId>com.github.LiQiyeDev</groupId>
-                            <artifactId>botmaker-studio-api</artifactId>
-                            <version>${botmaker.japicmp.baseline}</version>
-                            <type>jar</type>
-                        </dependency>
-                    </oldVersion>
-                    <parameter>
-                        <onlyModified>true</onlyModified>
-                        <ignoreMissingOldVersion>true</ignoreMissingOldVersion>
-                        <includes>
-                            <include>com.botmaker.plugin.api</include>
-                        </includes>
-                        <breakBuildBasedOnSemanticVersioning>false</breakBuildBasedOnSemanticVersioning>
-                        <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
-                        <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
-                        <includeSynthetic>false</includeSynthetic>
-                        <ignoreMissingClasses>true</ignoreMissingClasses>
-                    </parameter>
-                    <skip>${botmaker.japicmp.skip}</skip>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- The API gate, in a profile so that a build which only wants the ARTIFACT can decline to load
+             the plugin at all.
+
+             ACTIVE BY DEFAULT: the activation is the ABSENCE of botmaker.japicmp.skip, and a property
+             declared in <properties> above does not count for profile activation — only a -D does. So
+             `mvn verify` here and in CI runs the gate exactly as before, and only an explicit
+             `-Dbotmaker.japicmp.skip=true` turns it off. <skip> below stays for symmetry; with the profile
+             inactive the plugin is never loaded, so it never evaluates.
+
+             WHY THE PROFILE RATHER THAN THE <skip> FLAG: skipping is a decision the mojo makes after Maven
+             has resolved and loaded the plugin, and this plugin declares a PREREQUISITE. JitPack's builder
+             runs an older Maven, so the v0.0.1 build of this module — the first tag this module ever had —
+             died before any configuration was read:
+
+               [ERROR] Failed to execute goal com.github.siom79.japicmp:japicmp-maven-plugin:0.23.1:cmp
+               (default) on project botmaker-studio-api: The plugin ... requires Maven version 3.6.3
+
+             That published no artifact, which in turn took botmaker-sdk v1.1.1 down with it
+             (`Could not find artifact com.github.LiQiyeDev:botmaker-studio-api:jar:v0.0.1`). A gate that
+             can only refuse a tag ALREADY PUSHED protects nothing and can only break the publish; the
+             refusal that matters happened in this repository's own `mvn verify` before the tag existed.
+             That is the same reasoning as the `-DskipTests` jitpack.yml has always passed. -->
+        <profile>
+            <id>api-gate</id>
+            <activation>
+                <property>
+                    <name>!botmaker.japicmp.skip</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <!-- japicmp — the contract is binary-compatible with every plugin already compiled
+                         against it.
+
+                         A plugin's .class files cannot be rewritten by anyone, which is the whole reason
+                         this module is separate from the SDK, and the trap 25-compatibility.md lists under
+                         "not checked by anything" is the one this catches: adding a component to a public
+                         record changes its canonical constructor descriptor and throws NoSuchMethodError in
+                         every already-built plugin — source-compatible, binary-incompatible, and until now
+                         carried by a Javadoc sentence.
+
+                         Unconditional, which is what makes it legitimate where the SDK's August gate was
+                         not: that one had to tell an intended break from an accident and could not see the
+                         version. Here there is no legitimate break to distinguish — only a Studio major
+                         release may make one, and that is the release that edits this block. So no ignore
+                         list, no exemption annotation, no verdict file. No postAnalysisScript either: its
+                         bundled Groovy cannot read Java 26 class files. -->
+                    <plugin>
+                        <groupId>com.github.siom79.japicmp</groupId>
+                        <artifactId>japicmp-maven-plugin</artifactId>
+                        <version>0.23.1</version>
+                        <executions>
+                            <execution>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>cmp</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <oldVersion>
+                                <dependency>
+                                    <groupId>com.github.LiQiyeDev</groupId>
+                                    <artifactId>botmaker-studio-api</artifactId>
+                                    <version>${botmaker.japicmp.baseline}</version>
+                                    <type>jar</type>
+                                </dependency>
+                            </oldVersion>
+                            <parameter>
+                                <onlyModified>true</onlyModified>
+                                <ignoreMissingOldVersion>true</ignoreMissingOldVersion>
+                                <includes>
+                                    <include>com.botmaker.plugin.api</include>
+                                </includes>
+                                <breakBuildBasedOnSemanticVersioning>false</breakBuildBasedOnSemanticVersioning>
+                                <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+                                <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
+                                <includeSynthetic>false</includeSynthetic>
+                                <ignoreMissingClasses>true</ignoreMissingClasses>
+                            </parameter>
+                            <skip>${botmaker.japicmp.skip}</skip>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
