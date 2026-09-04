@@ -15,6 +15,23 @@ be read against it:** a plugin's compiled `.class` files cannot be rewritten by 
 that an already-built plugin cannot survive is a **major** change, and one that only a Studio major release
 is allowed to make. Additions arrive as `default` methods.
 
+## [Unreleased]
+
+### Fixed
+
+- **This module is resolvable from JitPack again.** `v0.0.2` was published and could not be built: the pom
+  did not pin `maven-compiler-plugin`, and JitPack's Maven defaults it to **3.1** — a version that predates
+  `maven.compiler.release` (added in 3.6), ignores it, and falls back to `source 5`:
+
+  ```
+  [ERROR] Source option 5 is no longer supported. Use 8 or later.
+  ```
+
+  It broke on 2026-09-02, the day the platform moved to Java 25, and nothing downstream of the contract
+  could resolve it for two days — the toolkit, `botmaker-plugin-host`, `botmaker-cli` and the SDK all
+  failed with `Could not find artifact com.github.LiQiyeDev:botmaker-studio-api`. Nothing on this side
+  changed: the artifact this tag publishes is what `v0.0.2` was meant to be.
+
 ## [0.0.2] — 2026-09-02
 
 ### Changed

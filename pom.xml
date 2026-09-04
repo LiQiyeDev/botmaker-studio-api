@@ -87,6 +87,28 @@
 
     <build>
         <plugins>
+            <!-- PIN THE COMPILER, and do not delete this as redundant: locally it IS redundant, and on
+                 JitPack it is the difference between a published artifact and none.
+
+                 Maven only defaults a plugin's version for the ones bound to the lifecycle, and the
+                 default it picks comes from the Maven version doing the building. JitPack's is old enough
+                 to default maven-compiler-plugin to 3.1 — which predates maven.compiler.release (added in
+                 3.6) entirely, ignores the property above, and falls back to source/target 5:
+
+                     [ERROR] Source option 5 is no longer supported. Use 8 or later.
+
+                 This module stopped building on JitPack the day the platform moved to
+                 maven.compiler.release (2026-09-02) and nothing downstream could resolve it: the toolkit,
+                 plugin-host, the cli and the SDK all failed with "Could not find artifact
+                 com.github.LiQiyeDev:botmaker-studio-api" for two days, because release.sh's JitPack check
+                 reports rather than blocks and its warning reads exactly like a slow queue. Six of eight
+                 published modules were unresolvable. See CLAUDE.md § Releasing, and releases/*.md, which
+                 exists so the next one is noticed. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
