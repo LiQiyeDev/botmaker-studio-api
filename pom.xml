@@ -103,11 +103,22 @@
                  com.github.LiQiyeDev:botmaker-studio-api" for two days, because release.sh's JitPack check
                  reports rather than blocks and its warning reads exactly like a slow queue. Six of eight
                  published modules were unresolvable. See CLAUDE.md § Releasing, and releases/*.md, which
-                 exists so the next one is noticed. -->
+                 exists so the next one is noticed.
+
+                 AND THE VERSION IS 3.11.0, NOT A NEWER ONE, which is the second half of the same trap.
+                 v0.0.3 pinned 3.13.0 and failed on JitPack in a different way:
+
+                     [ERROR] The plugin org.apache.maven.plugins:maven-compiler-plugin:3.13.0
+                             requires Maven version 3.6.3
+
+                 maven-compiler-plugin raised its own Maven prerequisite from 3.2.5 to 3.6.3 in 3.12.0, and
+                 JitPack's Maven is older than that. 3.11.0 is the newest version that builds there, which
+                 is why botmaker-shared — the one module that has never been broken — pins exactly it.
+                 Match it; do not "modernise" this number. -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <version>3.11.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

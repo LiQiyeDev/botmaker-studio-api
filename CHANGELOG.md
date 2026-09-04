@@ -15,6 +15,22 @@ be read against it:** a plugin's compiled `.class` files cannot be rewritten by 
 that an already-built plugin cannot survive is a **major** change, and one that only a Studio major release
 is allowed to make. Additions arrive as `default` methods.
 
+## [Unreleased]
+
+### Fixed
+
+- **The pin `0.0.3` added was itself unbuildable on JitPack**, which is why that tag is missing too. It
+  named `maven-compiler-plugin` **3.13.0**, and the plugin raised its own Maven prerequisite from 3.2.5 to
+  3.6.3 in 3.12.0 — JitPack's Maven is older than that, so the build stopped one line further down than
+  before:
+
+  ```
+  [ERROR] The plugin org.apache.maven.plugins:maven-compiler-plugin:3.13.0 requires Maven version 3.6.3
+  ```
+
+  Pinned to **3.11.0**, the newest version that builds there and the one `botmaker-shared` — the module
+  that never broke — has always used. Use `0.0.4`; `0.0.3` was never published.
+
 ## [0.0.3] — 2026-09-04
 
 ### Fixed
